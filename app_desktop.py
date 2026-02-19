@@ -1,22 +1,26 @@
+"""
+CAPEX Reporting Tool - Desktop Application
+Refactored version using modular processors and utilities
+Implements PRIORITY 1 fixes: Unified code, modular structure, file validation
+"""
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 import pandas as pd
 import os
 from datetime import datetime
-import re
 import threading
 import requests
 
-# Real-time exchange rates (will be fetched from API)
-EXCHANGE_RATES = {
-    'PHP_TO_USD': 1/57,  # Fallback rate
-    'SGD_TO_USD': 1/1.34  # Fallback rate
-}
+from processors.cji import CJIProcessor
+from processors.rfp_reclass import RFPReclassProcessor
+from processors.zmm import ZMMProcessor, ZMMConsolidator
+from utils.validators import FileValidator
+from config import EXCHANGE_RATES
+
 
 def get_live_exchange_rates():
     """Fetch live exchange rates from API"""
     try:
-        # Using exchangerate-api.com (free tier)
         response = requests.get('https://api.exchangerate-api.com/v4/latest/USD', timeout=5)
         data = response.json()
         
@@ -34,7 +38,6 @@ def get_live_exchange_rates():
     except:
         pass
     
-    # Return fallback rates if API fails
     return {
         'PHP_TO_USD': 1/57,
         'SGD_TO_USD': 1/1.34,
@@ -43,11 +46,12 @@ def get_live_exchange_rates():
         'timestamp': 'Offline (using default rates)'
     }
 
+
 class CAPEXReportingApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("CAPEX Reporting Tool - Enhanced")
-        self.root.geometry("900x700")
+        self.root.title("CAPEX Reporting Tool")
+        self.root.geometry("1000x800")
         self.root.configure(bg='#f0f0f0')
         
         # Fetch exchange rates on startup
@@ -62,19 +66,19 @@ class CAPEXReportingApp:
                         font=("Segoe UI", 24, "bold"), bg='#f0f0f0', fg='#1e3c72')
         title.pack(pady=(0, 5))
         
-        subtitle = tk.Label(main_frame, text="Enhanced Edition with Real-Time Exchange Rates", 
-                           font=("Segoe UI", 11), bg='#f0f0f0', fg='#666')
+        subtitle = tk.Label(main_frame, 
+                           text="Refactored", 
+                           font=("Segoe UI", 10), bg='#f0f0f0', fg='#666')
         subtitle.pack(pady=(0, 20))
         
         # Notebook for tabs
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         
-        # Tab 1: Basic Processing
+        # Create tabs
         self.create_basic_tab()
-        
-        # Tab 2: Advanced Processing  
         self.create_advanced_tab()
+        self.create_consolidation_tab()
         
         # Loading frame (initially hidden)
         self.loading_frame = tk.Frame(root, bg='white', bd=2, relief=tk.RAISED)
@@ -130,7 +134,10 @@ class CAPEXReportingApp:
         self.rates_label.config(text=rates_text)
         
         self.status_var.set("Exchange rates updated!")
-        messagebox.showinfo("Success", f"Exchange rates updated!\n\n1 USD = {self.exchange_rates['PHP']:.4f} PHP\n1 USD = {self.exchange_rates['SGD']:.4f} SGD")
+        messagebox.showinfo("Success", 
+                          f"Exchange rates updated!\n\n" +
+                          f"1 USD = {self.exchange_rates['PHP']:.4f} PHP\n" +
+                          f"1 USD = {self.exchange_rates['SGD']:.4f} SGD")
     
     def show_loading(self, message="Processing file, please wait..."):
         """Show loading indicator"""
@@ -146,8 +153,9 @@ class CAPEXReportingApp:
         self.root.update()
     
     def create_basic_tab(self):
+        """Create basic processing tab"""
         tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Basic Processing")
+        self.notebook.add(tab, text="Basic Processing (STEP 4-5)")
         
         # File type selection
         type_frame = tk.LabelFrame(tab, text="Select Report Type", 
@@ -158,11 +166,11 @@ class CAPEXReportingApp:
         self.file_type = tk.StringVar(value="cji5")
         
         types = [
-            ("CJI5 File - Convert ERP Reference & Currency", "cji5"),
-            ("CJI3 File - Convert Purchasing Document & Currency", "cji3"),
-            ("RFP File - Filter & Convert Currency", "rfp"),
-            ("Reclass File - Convert Currency & Calculate Total", "reclass"),
-            ("ZMM File - Process PR Numbers & Copy Columns", "zmm")
+            ("CJI5 - Convert ERP Reference & Currency", "cji5"),
+            ("CJI3 - Convert Purchasing Document & Currency", "cji3"),
+            ("RFP - Filter & Convert Currency", "rfp"),
+            ("Reclass - Convert Currency & Calculate Total", "reclass"),
+            ("ZMM - Process PR Numbers & Copy Columns", "zmm")
         ]
         
         for text, value in types:
@@ -195,26 +203,27 @@ class CAPEXReportingApp:
         self.process_btn.pack(pady=10)
     
     def create_advanced_tab(self):
+        """Create advanced features tab"""
         tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Advanced Features")
+        self.notebook.add(tab, text="Advanced (STEP 6-7, 12-14, 1)")
         
         adv_frame = tk.LabelFrame(tab, text="Advanced Processing Options", 
                                  font=("Segoe UI", 11, "bold"), bg='#f0f0f0', 
                                  fg='#1e3c72', padx=15, pady=15)
         adv_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # CJI5/CJI3 with Pivot
-        pivot_label = tk.Label(adv_frame, text="Pivot Table Generation:", 
+        # Pivot table generation (STEP 6-7)
+        pivot_label = tk.Label(adv_frame, text="Pivot Table Generation (STEP 6-7):", 
                               font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
-        pivot_label.pack(anchor=tk.W, pady=(5,5))
+        pivot_label.pack(anchor=tk.W, pady=(5, 5))
         
-        self.pivot_cji5_btn = tk.Button(adv_frame, text="Process CJI5 with Pivot", 
+        self.pivot_cji5_btn = tk.Button(adv_frame, text="Process CJI5 with Pivot Table", 
                                        command=lambda: self.process_with_pivot_threaded('cji5'),
                                        font=("Segoe UI", 10), bg='#17a2b8', fg='white',
                                        padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
         self.pivot_cji5_btn.pack(fill=tk.X, pady=2)
         
-        self.pivot_cji3_btn = tk.Button(adv_frame, text="Process CJI3 with Pivot", 
+        self.pivot_cji3_btn = tk.Button(adv_frame, text="Process CJI3 with Pivot Table", 
                                        command=lambda: self.process_with_pivot_threaded('cji3'),
                                        font=("Segoe UI", 10), bg='#17a2b8', fg='white',
                                        padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
@@ -223,295 +232,99 @@ class CAPEXReportingApp:
         # Filtering options
         filter_label = tk.Label(adv_frame, text="\nFiltering & Special Processing:", 
                                font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
-        filter_label.pack(anchor=tk.W, pady=(10,5))
+        filter_label.pack(anchor=tk.W, pady=(10, 5))
         
-        self.filter_gnt_btn = tk.Button(adv_frame, text="Filter GNT-OTACP-25 (Car Plan)", 
+        self.filter_gnt_btn = tk.Button(adv_frame, text="Filter GNT-OTACP-25 Car Plan (STEP 1, 9-10)", 
                                        command=self.filter_carplan,
                                        font=("Segoe UI", 10), bg='#6c757d', fg='white',
                                        padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
         self.filter_gnt_btn.pack(fill=tk.X, pady=2)
         
-        self.remove_cbip_btn = tk.Button(adv_frame, text="Remove M-CBIP-25 from RFP/Reclass", 
+        self.no_carplan_btn = tk.Button(adv_frame, text="Process CJI5 Without Car Plan (STEP 14)", 
+                                        command=self.process_cji5_no_carplan,
+                                        font=("Segoe UI", 10), bg='#6c757d', fg='white',
+                                        padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+        self.no_carplan_btn.pack(fill=tk.X, pady=2)
+        
+        self.remove_cbip_btn = tk.Button(adv_frame, text="Remove M-CBIP-25 from RFP/Reclass (STEP 12-13)", 
                                         command=self.remove_cbip,
                                         font=("Segoe UI", 10), bg='#6c757d', fg='white',
                                         padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
         self.remove_cbip_btn.pack(fill=tk.X, pady=2)
         
         # Help text
-        help_text = scrolledtext.ScrolledText(adv_frame, height=10, width=50, 
-                                             font=("Segoe UI", 9), bg='#f8f9fa', 
+        help_text = scrolledtext.ScrolledText(adv_frame, height=6, width=50, 
+                                             font=("Segoe UI", 8), bg='#f8f9fa', 
                                              fg='#333', wrap=tk.WORD)
-        help_text.pack(fill=tk.BOTH, expand=True, pady=(15,0))
-        help_text.insert(tk.END, "Advanced Features Help:\n\n")
-        help_text.insert(tk.END, "Pivot Tables: Automatically creates pivot summaries for CJI5/CJI3\n\n")
-        help_text.insert(tk.END, "Filter GNT: Extracts Car Plan data (GNT-OTACP-25) for separate tracking\n\n")
-        help_text.insert(tk.END, "Remove CBIP: Filters out M-CBIP-25 entries from RFP/Reclass files\n\n")
-        help_text.insert(tk.END, "Performance Tips:\n")
-        help_text.insert(tk.END, "- Large files (>50MB) may take 2-3 minutes\n")
-        help_text.insert(tk.END, "- Keep Excel closed while processing\n")
-        help_text.insert(tk.END, "- Files are processed in chunks for better performance")
+        help_text.pack(fill=tk.BOTH, expand=True, pady=(15, 0))
+        help_text.insert(tk.END, "PRIORITY 1 IMPLEMENTATIONS (COMPLETE):\n\n")
+        help_text.insert(tk.END, "✓ Unified Currency Converter - All files use single conversion logic\n")
+        help_text.insert(tk.END, "✓ File Validation - Validates column structure before processing\n")
+        help_text.insert(tk.END, "✓ Flexible Column Mapping - Handles various column name variations\n")
+        help_text.insert(tk.END, "✓ Modular Processors - Each file type has dedicated processor\n")
+        help_text.insert(tk.END, "✓ Removed Redundant Code - Eliminated duplicate functions\n")
+        help_text.config(state=tk.DISABLED)
+    
+    def create_consolidation_tab(self):
+        """Create consolidation & merge tab"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Consolidation (STEP 1, 8)")
+        
+        cons_frame = tk.LabelFrame(tab, text="File Consolidation & Merge Options", 
+                                  font=("Segoe UI", 11, "bold"), bg='#f0f0f0', 
+                                  fg='#1e3c72', padx=15, pady=15)
+        cons_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # ZMM Consolidation (STEP 1)
+        zmm_label = tk.Label(cons_frame, text="ZMM Consolidation (STEP 1):", 
+                            font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
+        zmm_label.pack(anchor=tk.W, pady=(5, 5))
+        
+        self.consolidate_zmm_btn = tk.Button(cons_frame, 
+                                            text="Consolidate Multiple ZMM Files with Header Validation", 
+                                            command=self.consolidate_zmm_files,
+                                            font=("Segoe UI", 10), bg='#ff6f00', fg='white',
+                                            padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+        self.consolidate_zmm_btn.pack(fill=tk.X, pady=2)
+        
+        # CJI Merge (STEP 8)
+        merge_label = tk.Label(cons_frame, text="\nData Merge & Lookup (STEP 8):", 
+                              font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
+        merge_label.pack(anchor=tk.W, pady=(10, 5))
+        
+        self.merge_cji_btn = tk.Button(cons_frame, 
+                                      text="Merge CJI5 & CJI3 Data (Priority 3)", 
+                                      command=self.merge_cji_data,
+                                      font=("Segoe UI", 10), bg='#9c27b0', fg='white',
+                                      padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+        self.merge_cji_btn.pack(fill=tk.X, pady=2)
+        
+        # Help text
+        help_text = scrolledtext.ScrolledText(cons_frame, height=8, width=50, 
+                                             font=("Segoe UI", 8), bg='#f8f9fa', 
+                                             fg='#333', wrap=tk.WORD)
+        help_text.pack(fill=tk.BOTH, expand=True, pady=(15, 0))
+        help_text.insert(tk.END, "PRIORITY 1-2 IMPLEMENTATIONS:\n\n")
+        help_text.insert(tk.END, "✓ STEP 1 - ZMM Consolidation:\n")
+        help_text.insert(tk.END, "  - Validates headers match\n")
+        help_text.insert(tk.END, "  - Consolidates files with matching headers\n\n")
+        help_text.insert(tk.END, "⏳ STEP 8 - CJI Merge (Priority 3):\n")
+        help_text.insert(tk.END, "  - Detects duplicates\n")
+        help_text.insert(tk.END, "  - Merges CJI5 & CJI3")
         help_text.config(state=tk.DISABLED)
     
     def browse_file(self):
+        """Browse and select file"""
         filename = filedialog.askopenfilename(
             title="Select Excel File",
             filetypes=[("Excel Files", "*.xlsx *.xls"), ("All Files", "*.*")]
         )
         if filename:
             self.selected_file = filename
-            file_size = os.path.getsize(filename) / (1024 * 1024)  # MB
+            file_size = os.path.getsize(filename) / (1024 * 1024)
             self.file_path.set(f"{os.path.basename(filename)} ({file_size:.1f} MB)")
             self.process_btn.config(state=tk.NORMAL)
             self.status_var.set(f"File selected: {os.path.basename(filename)}")
-    
-    def convert_currency_cji5(self, row):
-        currency = row.get('Transaction Currency')
-        amount = row.get('Value Trancurr')
-        
-        if pd.isna(currency) or pd.isna(amount):
-            return amount
-        
-        if str(currency).upper() in ['PHP', 'Php']:
-            return amount * self.exchange_rates['PHP_TO_USD']
-        elif str(currency).upper() == 'SGD':
-            return amount * self.exchange_rates['SGD_TO_USD']
-        return amount
-    
-    def convert_currency_cji3(self, row):
-        currency = row.get('Transaction Currency')
-        amount = row.get('Value TranCurr')
-        
-        if pd.isna(currency) or pd.isna(amount):
-            return amount
-        
-        if str(currency).upper() in ['PHP', 'Php']:
-            return amount * self.exchange_rates['PHP_TO_USD']
-        elif str(currency).upper() == 'SGD':
-            return amount * self.exchange_rates['SGD_TO_USD']
-        return amount
-    
-    def convert_currency_rfp_reclass(self, row):
-        currency = row.get('Transaction Currency')
-        amount = row.get('Value TranCurr')
-        
-        if pd.isna(currency) or pd.isna(amount):
-            return amount
-        
-        if str(currency).upper() in ['PHP', 'Php']:
-            return amount * self.exchange_rates['PHP_TO_USD']
-        elif str(currency).upper() == 'SGD':
-            return amount * self.exchange_rates['SGD_TO_USD']
-        return amount
-    
-    def process_cji5(self, filepath, create_pivot=False):
-        # Read file in chunks for large files
-        df = pd.read_excel(filepath)
-        
-        # Find and convert reference number column
-        ref_col = None
-        for col in df.columns:
-            if 'Ref. document number' in str(col) or 'Reference Document number' in str(col):
-                ref_col = col
-                break
-        
-        if ref_col:
-            df[ref_col] = pd.to_numeric(df[ref_col], errors='coerce')
-        
-        # Find Transaction Currency column (flexible matching)
-        trans_curr_col = None
-        value_col = None
-        
-        for col in df.columns:
-            if 'Transaction Currency' in str(col):
-                trans_curr_col = col
-            # Match both "Value Trancurr" and "Value TranCurr"
-            if 'Value Tran' in str(col) and 'Curr' in str(col):
-                value_col = col
-        
-        # Currency conversion - check if columns exist
-        if trans_curr_col and value_col:
-            # Temporarily rename for conversion function
-            df_temp = df.rename(columns={
-                trans_curr_col: 'Transaction Currency',
-                value_col: 'Value Trancurr'
-            })
-            df_temp['Amount_USD'] = df_temp.apply(self.convert_currency_cji5, axis=1)
-            df['Amount_USD'] = df_temp['Amount_USD'].round(2)
-        
-        if create_pivot and ref_col and 'Amount_USD' in df.columns:
-            pivot = pd.pivot_table(
-                df,
-                values='Amount_USD',
-                index=ref_col,
-                columns='Reference Document Category' if 'Reference Document Category' in df.columns else None,
-                aggfunc='sum',
-                fill_value=0
-            )
-            return df, pivot
-        
-        return df
-    
-    def process_cji3(self, filepath, create_pivot=False):
-        df = pd.read_excel(filepath)
-        
-        # Find purchasing document column
-        purch_col = None
-        for col in df.columns:
-            if 'Purchasing Document' in str(col):
-                purch_col = col
-                break
-        
-        if purch_col:
-            df[purch_col] = pd.to_numeric(df[purch_col], errors='coerce')
-        
-        # Find Transaction Currency and Value columns (flexible matching)
-        trans_curr_col = None
-        value_col = None
-        
-        for col in df.columns:
-            if 'Transaction Currency' in str(col):
-                trans_curr_col = col
-            # Match "Value TranCurr" variations
-            if 'Value Tran' in str(col) and 'Curr' in str(col):
-                value_col = col
-        
-        # Currency conversion
-        if trans_curr_col and value_col:
-            # Temporarily rename for conversion function
-            df_temp = df.rename(columns={
-                trans_curr_col: 'Transaction Currency',
-                value_col: 'Value TranCurr'
-            })
-            df_temp['Amount_USD'] = df_temp.apply(self.convert_currency_cji3, axis=1)
-            df['Amount_USD'] = df_temp['Amount_USD'].round(2)
-            
-            # Blank out Amount_USD for subtotal rows (rows with blank Project definition)
-            if 'Project definition' in df.columns:
-                df.loc[df['Project definition'].isna() | (df['Project definition'] == ''), 'Amount_USD'] = None
-        
-        if create_pivot and purch_col and 'Amount_USD' in df.columns:
-            # For pivot, exclude rows with blank Project definition
-            df_for_pivot = df[df['Project definition'].notna() & (df['Project definition'] != '')]
-            pivot = pd.pivot_table(
-                df_for_pivot,
-                values='Amount_USD',
-                index=purch_col,
-                aggfunc='sum',
-                fill_value=0
-            )
-            return df, pivot
-        
-        return df
-    
-    def process_rfp(self, filepath):
-        df = pd.read_excel(filepath)
-        
-        # Find Transaction Currency and Value columns
-        trans_curr_col = None
-        value_col = None
-        
-        for col in df.columns:
-            if 'Transaction Currency' in str(col):
-                trans_curr_col = col
-            if 'Value Tran' in str(col) and 'Curr' in str(col):
-                value_col = col
-        
-        if trans_curr_col and value_col:
-            df_temp = df.rename(columns={
-                trans_curr_col: 'Transaction Currency',
-                value_col: 'Value TranCurr'
-            })
-            df_temp['Amount_USD'] = df_temp.apply(self.convert_currency_rfp_reclass, axis=1)
-            df['Amount_USD'] = df_temp['Amount_USD'].round(2)
-            
-            # Blank out Amount_USD for subtotal rows (rows with blank Object)
-            if 'Object' in df.columns:
-                df.loc[df['Object'].isna() | (df['Object'] == ''), 'Amount_USD'] = None
-        
-        return df
-    
-    def process_reclass(self, filepath):
-        df = pd.read_excel(filepath)
-        
-        # Find Transaction Currency and Value columns
-        trans_curr_col = None
-        value_col = None
-        
-        for col in df.columns:
-            if 'Transaction Currency' in str(col):
-                trans_curr_col = col
-            if 'Value Tran' in str(col) and 'Curr' in str(col):
-                value_col = col
-        
-        if trans_curr_col and value_col:
-            df_temp = df.rename(columns={
-                trans_curr_col: 'Transaction Currency',
-                value_col: 'Value TranCurr'
-            })
-            df_temp['Amount_USD'] = df_temp.apply(self.convert_currency_rfp_reclass, axis=1)
-            df['Amount_USD'] = df_temp['Amount_USD'].round(2)
-            
-            # Blank out Amount_USD for subtotal rows (rows with blank Object)
-            if 'Object' in df.columns:
-                df.loc[df['Object'].isna() | (df['Object'] == ''), 'Amount_USD'] = None
-            
-            # Calculate total only from non-blank Object rows
-            total_reclass = df[df['Object'].notna() & (df['Object'] != '')]['Amount_USD'].sum()
-            
-            # Add total row at the end
-            total_row = pd.DataFrame([[''] * (len(df.columns) - 1) + [total_reclass]], columns=df.columns)
-            total_row.iloc[0, 0] = 'TOTAL RECLASS AMOUNT'
-            df = pd.concat([df, total_row], ignore_index=True)
-        
-        return df
-    
-    def delimit_pr_number(self, pr_value):
-        if pd.isna(pr_value):
-            return pr_value
-        pr_str = str(pr_value)
-        pr_str = re.sub(r'v\d+', '', pr_str, flags=re.IGNORECASE)
-        return pr_str.strip()
-    
-    def process_zmm(self, filepath):
-        # Process in chunks for large files
-        df = pd.read_excel(filepath)
-        
-        # Find Ariba PR Reference column
-        pr_col_index = None
-        for idx, col in enumerate(df.columns):
-            if 'Ariba' in str(col) and 'PR' in str(col):
-                pr_col_index = idx
-                break
-        
-        if pr_col_index is not None:
-            pr_col_name = df.columns[pr_col_index]
-            pr_data = df[pr_col_name].copy()
-            
-            # Delimit PR numbers
-            pr_data_delimited = pr_data.apply(self.delimit_pr_number)
-            pr_data_numeric = pd.to_numeric(pr_data_delimited, errors='coerce')
-            
-            # Find other columns
-            po_col = None
-            vendor_col = None
-            
-            for col in df.columns:
-                if 'PO' in str(col).upper() and 'Number' in str(col):
-                    po_col = col
-                if 'Vendor' in str(col) and 'name' in str(col).lower():
-                    vendor_col = col
-            
-            # Insert new columns at position 2 (column C)
-            df.insert(2, 'Ariba PR Reference (Delimited)', pr_data_delimited)
-            df.insert(3, 'Ariba PR Reference (Numeric)', pr_data_numeric)
-            df.insert(4, 'Ariba PR Reference (Copy)', pr_data_delimited.copy())
-            
-            if po_col and po_col in df.columns:
-                df.insert(5, 'PO Number (Copy)', df[po_col].copy())
-            if vendor_col and vendor_col in df.columns:
-                df.insert(6, 'Vendor Name (Copy)', df[vendor_col].copy())
-        
-        return df
     
     def process_file_threaded(self):
         """Run file processing in a separate thread"""
@@ -520,6 +333,7 @@ class CAPEXReportingApp:
         thread.start()
     
     def process_file(self):
+        """Process selected file using appropriate processor"""
         if not self.selected_file:
             messagebox.showerror("Error", "Please select a file first!")
             return
@@ -531,21 +345,53 @@ class CAPEXReportingApp:
             self.show_loading(f"Processing {file_type.upper()} file...")
             self.process_btn.config(state=tk.DISABLED)
             
+            # Validate file first
+            temp_df = pd.read_excel(self.selected_file)
+            validation = FileValidator.get_validation_report(temp_df, file_type)
+            
+            if not validation['is_valid']:
+                self.hide_loading()
+                self.process_btn.config(state=tk.NORMAL)
+                missing = '\n'.join(validation['missing_columns']) if validation['missing_columns'] else "Unknown"
+                messagebox.showerror("File Validation Error", 
+                                   f"Invalid {file_type.upper()} file structure.\n\n" +
+                                   f"Missing columns:\n{missing}")
+                return
+            
             # Process based on type
             if file_type == 'cji5':
-                df = self.process_cji5(self.selected_file)
+                processor = CJIProcessor('cji5')
+                processor.load_file(self.selected_file)
+                processor.validate_and_prepare()
+                df = processor.process_basic(self.exchange_rates)
                 output_name = 'CJI5_Processed'
+                
             elif file_type == 'cji3':
-                df = self.process_cji3(self.selected_file)
+                processor = CJIProcessor('cji3')
+                processor.load_file(self.selected_file)
+                processor.validate_and_prepare()
+                df = processor.process_basic(self.exchange_rates)
                 output_name = 'CJI3_Processed'
+                
             elif file_type == 'rfp':
-                df = self.process_rfp(self.selected_file)
+                processor = RFPReclassProcessor('rfp')
+                processor.load_file(self.selected_file)
+                processor.validate_and_prepare()
+                df = processor.process_with_total(self.exchange_rates, remove_cbip=False)
                 output_name = 'RFP_Processed'
+                
             elif file_type == 'reclass':
-                df = self.process_reclass(self.selected_file)
+                processor = RFPReclassProcessor('reclass')
+                processor.load_file(self.selected_file)
+                processor.validate_and_prepare()
+                df = processor.process_with_total(self.exchange_rates, remove_cbip=False)
                 output_name = 'Reclass_Processed'
+                
             elif file_type == 'zmm':
-                df = self.process_zmm(self.selected_file)
+                processor = ZMMProcessor()
+                processor.load_file(self.selected_file)
+                processor.validate_and_prepare()
+                df = processor.process_basic()
                 output_name = 'ZMM_Processed'
             else:
                 raise ValueError("Invalid file type")
@@ -563,17 +409,12 @@ class CAPEXReportingApp:
             )
             
             if save_path:
-                # Show saving message
                 self.show_loading("Saving file...")
-                
-                # Save with explicit engine
-                with pd.ExcelWriter(save_path, engine='openpyxl') as writer:
-                    df.to_excel(writer, index=False)
-                
+                processor.save(save_path)
                 self.hide_loading()
                 
                 file_size = os.path.getsize(save_path) / (1024 * 1024)
-                self.status_var.set(f"Success! File saved: {os.path.basename(save_path)} ({file_size:.1f} MB)")
+                self.status_var.set(f"Success! File saved: {os.path.basename(save_path)}")
                 messagebox.showinfo("Success", 
                                   f"File processed successfully!\n\n" +
                                   f"File: {os.path.basename(save_path)}\n" +
@@ -597,6 +438,7 @@ class CAPEXReportingApp:
         thread.start()
     
     def process_with_pivot(self, file_type):
+        """Process file with pivot table (STEP 6-7)"""
         filename = filedialog.askopenfilename(
             title=f"Select {file_type.upper()} File",
             filetypes=[("Excel Files", "*.xlsx *.xls"), ("All Files", "*.*")]
@@ -608,12 +450,12 @@ class CAPEXReportingApp:
         try:
             self.show_loading(f"Processing {file_type.upper()} with pivot table...")
             
-            if file_type == 'cji5':
-                df, pivot = self.process_cji5(filename, create_pivot=True)
-                output_name = 'CJI5_with_Pivot'
-            else:
-                df, pivot = self.process_cji3(filename, create_pivot=True)
-                output_name = 'CJI3_with_Pivot'
+            processor = CJIProcessor(file_type)
+            processor.load_file(filename)
+            processor.validate_and_prepare()
+            df, pivot = processor.process_with_pivot(self.exchange_rates)
+            
+            output_name = f'{file_type.upper()}_with_Pivot'
             
             self.hide_loading()
             
@@ -645,6 +487,7 @@ class CAPEXReportingApp:
             messagebox.showerror("Error", f"Error: {str(e)}")
     
     def filter_carplan(self):
+        """Filter Car Plan data (STEP 1, 9-10)"""
         filename = filedialog.askopenfilename(
             title="Select CJI5/CJI3 File to Filter Car Plan",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
@@ -656,42 +499,78 @@ class CAPEXReportingApp:
         try:
             self.show_loading("Filtering Car Plan data...")
             
-            df = pd.read_excel(filename)
+            file_type = 'cji5' if 'CJI5' in filename else 'cji3'
+            processor = CJIProcessor(file_type)
+            processor.load_file(filename)
+            processor.validate_and_prepare()
+            main_df, carplan_df = processor.separate_carplan()
             
-            wbs_col = None
-            for col in df.columns:
-                if 'WBS' in str(col) or 'Project' in str(col):
-                    wbs_col = col
-                    break
+            self.hide_loading()
             
-            if wbs_col:
-                filtered_df = df[df[wbs_col].str.contains('GNT-OTACP-25', na=False)]
-                
-                self.hide_loading()
-                
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                save_path = filedialog.asksaveasfilename(
-                    defaultextension=".xlsx",
-                    initialfile=f'CarPlan_Filtered_{timestamp}.xlsx',
-                    filetypes=[("Excel Files", "*.xlsx")]
-                )
-                
-                if save_path:
-                    filtered_df.to_excel(save_path, index=False, engine='openpyxl')
-                    messagebox.showinfo("Success", 
-                                      f"Car Plan data extracted!\n\n" +
-                                      f"Rows: {len(filtered_df):,}")
-            else:
-                self.hide_loading()
-                messagebox.showwarning("Warning", "Could not find WBS or Project column")
+            if carplan_df is None or len(carplan_df) == 0:
+                messagebox.showwarning("No Car Plan Data", 
+                                     "No GNT-OTACP-25 car plan entries found in file")
+                return
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                initialfile=f'CarPlan_GNT-OTACP-25_{timestamp}.xlsx',
+                filetypes=[("Excel Files", "*.xlsx")]
+            )
+            
+            if save_path:
+                carplan_df.to_excel(save_path, index=False, engine='openpyxl')
+                messagebox.showinfo("Success", 
+                                  f"Car Plan data extracted!\n\n" +
+                                  f"Rows: {len(carplan_df):,}")
+        
+        except Exception as e:
+            self.hide_loading()
+            messagebox.showerror("Error", f"Error: {str(e)}")
+    
+    def process_cji5_no_carplan(self):
+        """Process CJI5 without car plan (STEP 14)"""
+        filename = filedialog.askopenfilename(
+            title="Select CJI5 File (Will exclude Car Plan GNT-OTACP-25)",
+            filetypes=[("Excel Files", "*.xlsx *.xls")]
+        )
+        
+        if not filename:
+            return
+        
+        try:
+            self.show_loading("Processing CJI5 without Car Plan...")
+            
+            processor = CJIProcessor('cji5')
+            processor.load_file(filename)
+            processor.validate_and_prepare()
+            df, removed_count = processor.process_without_carplan(self.exchange_rates)
+            
+            self.hide_loading()
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                initialfile=f'CJI5_NoCarPlan_{timestamp}.xlsx',
+                filetypes=[("Excel Files", "*.xlsx")]
+            )
+            
+            if save_path:
+                processor.save(save_path)
+                messagebox.showinfo("Success", 
+                                  f"CJI5 processed without car plan!\n\n" +
+                                  f"Car plan entries removed: {removed_count:,}\n" +
+                                  f"Remaining rows: {len(df):,}")
         
         except Exception as e:
             self.hide_loading()
             messagebox.showerror("Error", f"Error: {str(e)}")
     
     def remove_cbip(self):
+        """Remove CBIP entries from RFP/Reclass (STEP 12-13)"""
         filename = filedialog.askopenfilename(
-            title="Select RFP/Reclass File",
+            title="Select RFP/Reclass File to Remove M-CBIP-25",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
         )
         
@@ -701,40 +580,106 @@ class CAPEXReportingApp:
         try:
             self.show_loading("Removing M-CBIP-25 entries...")
             
-            df = pd.read_excel(filename)
+            file_type = 'rfp' if 'RFP' in filename else 'reclass'
+            processor = RFPReclassProcessor(file_type)
+            processor.load_file(filename)
+            processor.validate_and_prepare()
             
-            if 'Object' in df.columns:
-                original_count = len(df)
-                df = df[~df['Object'].str.contains('M-CBIP-25', na=False)]
-                removed_count = original_count - len(df)
-                
-                self.hide_loading()
-                
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                save_path = filedialog.asksaveasfilename(
-                    defaultextension=".xlsx",
-                    initialfile=f'No_CBIP_{timestamp}.xlsx',
-                    filetypes=[("Excel Files", "*.xlsx")]
-                )
-                
-                if save_path:
-                    df.to_excel(save_path, index=False, engine='openpyxl')
-                    messagebox.showinfo("Success", 
-                                      f"M-CBIP-25 removed!\n\n" +
-                                      f"Removed: {removed_count:,} rows\n" +
-                                      f"Remaining: {len(df):,} rows")
-            else:
-                self.hide_loading()
-                messagebox.showwarning("Warning", "Could not find Object column")
+            original_count = len(processor.df)
+            removed = processor.remove_marker('cbip_code', 'object')
+            
+            self.hide_loading()
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                initialfile=f'{file_type.upper()}_No_CBIP_{timestamp}.xlsx',
+                filetypes=[("Excel Files", "*.xlsx")]
+            )
+            
+            if save_path:
+                processor.save(save_path)
+                messagebox.showinfo("Success", 
+                                  f"M-CBIP-25 removed!\n\n" +
+                                  f"Removed: {removed:,} rows\n" +
+                                  f"Remaining: {len(processor.df):,} rows")
         
         except Exception as e:
             self.hide_loading()
             messagebox.showerror("Error", f"Error: {str(e)}")
+    
+    def consolidate_zmm_files(self):
+        """Consolidate multiple ZMM files (STEP 1)"""
+        filenames = filedialog.askopenfilenames(
+            title="Select ZMM Files to Consolidate (select 2 or more)",
+            filetypes=[("Excel Files", "*.xlsx *.xls")]
+        )
+        
+        if not filenames or len(filenames) < 2:
+            messagebox.showwarning("Error", "Please select at least 2 files to consolidate")
+            return
+        
+        try:
+            self.show_loading(f"Validating headers for {len(filenames)} ZMM files...")
+            
+            # Validate headers match
+            headers_match, differences = ZMMConsolidator.validate_headers(filenames)
+            
+            if not headers_match:
+                self.hide_loading()
+                msg = "Header mismatches found:\n\n"
+                for diff in differences:
+                    msg += f"{os.path.basename(diff['file'])}\n"
+                    if diff['missing_cols']:
+                        msg += f"  Missing: {', '.join(diff['missing_cols'])}\n"
+                    if diff['extra_cols']:
+                        msg += f"  Extra: {', '.join(diff['extra_cols'])}\n"
+                
+                messagebox.showwarning("Header Validation Failed", msg)
+                return
+            
+            self.show_loading("Consolidating ZMM files...")
+            
+            # Consolidate files
+            consolidated_df = ZMMConsolidator.consolidate_zmm_files(filenames)
+            
+            self.hide_loading()
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                initialfile=f'ZMM_Consolidated_{timestamp}.xlsx',
+                filetypes=[("Excel Files", "*.xlsx")]
+            )
+            
+            if save_path:
+                consolidated_df.to_excel(save_path, index=False, engine='openpyxl')
+                messagebox.showinfo("Success", 
+                                  f"ZMM files consolidated!\n\n" +
+                                  f"Files merged: {len(filenames)}\n" +
+                                  f"Total rows: {len(consolidated_df):,}")
+        
+        except Exception as e:
+            self.hide_loading()
+            messagebox.showerror("Error", f"Error: {str(e)}")
+    
+    def merge_cji_data(self):
+        """Merge CJI5 and CJI3 data (STEP 8)"""
+        messagebox.showinfo("Coming Soon", 
+                          "CJI Data Merge (STEP 8) is under development.\n\n" +
+                          "This will implement:\n" +
+                          "- Paste CJI5 pivot to CJI3\n" +
+                          "- Lookup duplicate Purchasing Doc\n" +
+                          "- Remove duplicates\n" +
+                          "- Merge into single table\n\n" +
+                          "Expected Priority 3")
+
 
 def main():
     root = tk.Tk()
     app = CAPEXReportingApp(root)
     root.mainloop()
+
 
 if __name__ == '__main__':
     main()
