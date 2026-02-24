@@ -22,7 +22,9 @@ from processors.rfp_reclass import RFPReclassProcessor
 from processors.zmm import ZMMProcessor, ZMMConsolidator
 from processors.wp_loa_formula import WPLOAFormulaProcessor
 from utils.validators import FileValidator
+from utils.auto_updater import check_updates_on_startup
 from config import EXCHANGE_RATES
+from config.version import VERSION, VERSION_CHECK_URL
 
 
 def get_live_exchange_rates():
@@ -57,7 +59,7 @@ def get_live_exchange_rates():
 class CAPEXReportingApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("CAPEX Reporting Tool")
+        self.root.title(f"CAPEX Reporting Tool v{VERSION}")
         self.root.geometry("1000x800")
         self.root.configure(bg='#f0f0f0')
         
@@ -922,6 +924,9 @@ class CAPEXReportingApp:
 
 
 def main():
+    # Check for updates in background (silently downloads if available)
+    check_updates_on_startup(VERSION, VERSION_CHECK_URL)
+    
     root = tk.Tk()
     app = CAPEXReportingApp(root)
     root.mainloop()

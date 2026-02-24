@@ -9,9 +9,11 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+import sys
 
 from utils.vlookup import VLookupHelper, ExternalFileLookup, NameFormatter
 from utils.column_mapper import ColumnMapper
+from utils.file_detector import FileDetector
 
 
 class WPLOAProcessor:
@@ -36,6 +38,35 @@ class WPLOAProcessor:
         self.loa_current_approver_df = None
         self.file_path = None
         self.external_files = {}  # Cache for external files
+        
+    def auto_detect_external_files(self, search_directory: Optional[str] = None) -> Dict[str, Optional[str]]:
+        """
+        Auto-detect external files based on keywords
+        
+        Args:
+            search_directory: Directory to search in (default: same directory as input file)
+            
+        Returns:
+            Dictionary with detected file paths
+        """
+        if search_directory is None:
+            if self.file_path:
+                search_directory = str(Path(self.file_path).parent)
+            else:
+                search_directory = str(Path.cwd())
+        
+        # Use FileDetector to find files
+        detected = FileDetector.auto_detect_all_files(search_directory)
+        self.external_files = detected
+        
+        print("Auto-detected files:")
+        for file_type, file_path in detected.items():
+            if file_path:
+                print(f"  ✓ {file_type}: {Path(file_path).name}")
+            else:
+                print(f"  ✗ {file_type}: NOT FOUND")
+        
+        return detected
         
     def load_file(self, file_path: str) -> bool:
         """
@@ -67,26 +98,41 @@ class WPLOAProcessor:
     def load_external_files(self, availment_file: Optional[str] = None,
                            loa_approver_file: Optional[str] = None) -> Dict[str, bool]:
         """
-        Load external reference files
+        Load external reference files with auto-detection support
+        
+        If files are not provided, attempts to auto-detect them based on keywords.
+        Supports file name variations:
+        - CAPEX AVAILMENT: "2026 CAPEX AVAILMENT_as of FEB 23", "2026 CAPEX AVAILMENT_as of Feb 16", etc.
+        - LOA APPROVER: "LOA_CURRENT_APPROVER (Auto Email).xlsx", "LOA Current Approver.xlsx", etc.
         
         Args:
-            availment_file: Path to "2026 CAPEX AVAILMENT_as of Feb 16.xlsx"
-            loa_approver_file: Path to "LOA_CURRENT_APPROVER (Auto Email).xlsx"
+            availment_file: Path to "2026 CAPEX AVAILMENT_as of Feb 16.xlsx" (auto-detected if None)
+            loa_approver_file: Path to "LOA_CURRENT_APPROVER (Auto Email).xlsx" (auto-detected if None)
             
         Returns:
             Dictionary with load status for each file
         """
         results = {}
         
+        # Auto-detect if not provided
+        if availment_file is None or loa_approver_file is None:
+            detected = self.auto_detect_external_files()
+            if availment_file is None:
+                availment_file = detected.get('capex_availment')
+            if loa_approver_file is None:
+                loa_approver_file = detected.get('loa_approver')
+        
         # Load CAPEX AVAILMENT file
         if availment_file:
             try:
                 self.availment_df = pd.read_excel(availment_file, sheet_name='data_2026', dtype=str)
                 results['availment'] = True
+                print(f"✓ Loaded CAPEX AVAILMENT: {Path(availment_file).name}")
             except Exception as e:
-                print(f"Warning: Could not load CAPEX AVAILMENT file: {str(e)}")
+                print(f"✗ Warning: Could not load CAPEX AVAILMENT file: {str(e)}")
                 results['availment'] = False
         else:
+            print("✗ CAPEX AVAILMENT file not provided and not auto-detected")
             results['availment'] = False
         
         # Load LOA Current Approver file
@@ -95,10 +141,12 @@ class WPLOAProcessor:
                 self.loa_current_approver_df = pd.read_excel(loa_approver_file, 
                                                              sheet_name='page', dtype=str)
                 results['loa_approver'] = True
+                print(f"✓ Loaded LOA APPROVER: {Path(loa_approver_file).name}")
             except Exception as e:
-                print(f"Warning: Could not load LOA Current Approver file: {str(e)}")
+                print(f"✗ Warning: Could not load LOA Current Approver file: {str(e)}")
                 results['loa_approver'] = False
         else:
+            print("✗ LOA APPROVER file not provided and not auto-detected")
             results['loa_approver'] = False
         
         return results
