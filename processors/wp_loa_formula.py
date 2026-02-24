@@ -10,101 +10,77 @@ from openpyxl.utils import get_column_letter
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import shutil
+import sys
+
+# Add utils to path for file detector import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.file_detector import FileDetector
 
 
 class WPLOAFormulaProcessor:
-    """
-    Processor for WP LOA Report using Excel formulas
+    """WP LOA Report processor using Excel formulas. Adds columns K-AA with extraction and VLOOKUP formulas."""
     
-    Handles:
-    - Loading WP LOA workbook (columns A-J)
-    - Inserting new columns K onwards with headers
-    - Creating VLOOKUP formulas for BUDGET tab lookups
-    - Creating derived column formulas
-    - Writing formulas to output file (not just values)
-    """
-    
-    # Column headers for new columns K onwards
+    # Column headers for K-AB
     NEW_COLUMN_HEADERS = [
-        'PID (Mother and Sub)',  # K - Copy of H
-        '1',                      # L - First part of L1
-        'YEAR',                  # M - Year value
-        '3',                      # N - Third part
-        'L1',                      # O - Derived: K&"-"&L&"-"&M
-        'L2',                      # P - Copy of H (PID)
-        'PROGRAM MBR',           # Q - VLOOKUP to BUDGET
-        'DIV',                    # R - VLOOKUP to BUDGET
-        'DEP',                    # S - VLOOKUP to BUDGET
-        'FUNDING',               # T - VLOOKUP to BUDGET
-        'CFU SPONSOR',           # U - VLOOKUP to BUDGET
-        'AVAILMENT TRACKER',     # V - Default or VLOOKUP
-        'PROPONENT',             # W - Default or VLOOKUP
-        'PROPONENT 1',           # X - Formatted PROPONENT
-        'DIV IN REPORT',         # Y - VLOOKUP
-        'PROJ',                  # Z - VLOOKUP to BUDGET
-        'SUBPROJ'                # AA - VLOOKUP to BUDGET
+        'PID (Mother and Sub)', '1', 'YEAR', '4', 'L1', 'L2',
+        'PROGRAM MBR', 'DIV', 'DEP', 'FUNDING', 'CFU SPONSOR',
+        'AVAILMENT TRACKER', 'PROPONENT', 'PROPONENT 1', 'DIV IN REPORT', 'PROGRAM IN REPORT',
+        'PROJ', 'SUBPROJ'
     ]
     
-    # Column positions (1-indexed for Excel)
+    # Column positions for reference
     COLUMNS = {
-        'WP_LOA': 1,           # A
-        'CHANGE_DATE': 2,      # B
-        'CHANGE_TIME': 3,      # C
-        'BOQ_PR': 4,           # D
-        'PROGRAM': 5,          # E
-        'PROJECT': 6,          # F
-        'DESCRIPTION': 7,      # G
-        'PID': 8,              # H
-        'AMOUNT_USD': 9,       # I
-        'STATUS': 10,          # J
-        'PID_COPY': 11,        # K - Copy of PID
-        'L1_PART1': 12,        # L - First part (should be extracted or user-entered)
-        'YEAR': 13,            # M - Year
-        'L1_PART3': 14,        # N - Third part
-        'L1': 15,              # O - L1 formula: =L&"-"&M&"-"&N
-        'L2': 16,              # P - L2 formula: =H
-        'PROGRAM_MBR': 17,     # Q - VLOOKUP to BUDGET
-        'DIV': 18,             # R
-        'DEP': 19,             # S
-        'FUNDING': 20,         # T
-        'CFU_SPONSOR': 21,     # U
-        'AVAILMENT_TRACKER': 22,  # V
-        'PROPONENT': 23,       # W
-        'PROPONENT_1': 24,     # X
-        'DIV_IN_REPORT': 25,   # Y
-        'PROJ': 26,            # Z
-        'SUBPROJ': 27          # AA
+        'WP_LOA': 1, 'CHANGE_DATE': 2, 'CHANGE_TIME': 3, 'BOQ_PR': 4, 'PROGRAM': 5,
+        'PROJECT': 6, 'DESCRIPTION': 7, 'PID': 8, 'AMOUNT_USD': 9, 'STATUS': 10,
+        'PID_COPY': 11, 'L1_PART1': 12, 'YEAR': 13, 'L1_PART3': 14, 'L1': 15,
+        'L2': 16, 'PROGRAM_MBR': 17, 'DIV': 18, 'DEP': 19, 'FUNDING': 20,
+        'CFU_SPONSOR': 21, 'AVAILMENT_TRACKER': 22, 'PROPONENT': 23,
+        'PROPONENT_1': 24, 'DIV_IN_REPORT': 25, 'PROGRAM_IN_REPORT': 26,
+        'PROJ': 27, 'SUBPROJ': 28
     }
     
     def __init__(self, file_path: str):
-        """
-        Initialize processor
-        
-        Args:
-            file_path: Path to WP LOA Report Excel file
-        """
+        """Initialize processor with file path."""
         self.file_path = file_path
         self.wb = None
         self.ws = None
         self.df = None
         self.budget_df = None
+        self.detected_files = {}  # Cache for auto-detected files
+        
+    def auto_detect_external_files(self, search_directory: Optional[str] = None) -> Dict[str, Optional[str]]:
+        """
+        Auto-detect external files based on keywords
+        
+        Args:
+            search_directory: Directory to search in (default: same directory as WP LOA file)
+            
+        Returns:
+            Dictionary with detected file paths
+        """
+        if search_directory is None:
+            search_directory = str(Path(self.file_path).parent)
+        
+        # Use FileDetector to find files
+        detected = FileDetector.auto_detect_all_files(search_directory)
+        self.detected_files = detected
+        
+        print("Auto-detected files:")
+        for file_type, file_path in detected.items():
+            if file_path:
+                print(f"  ✓ {file_type}: {Path(file_path).name}")
+            else:
+                print(f"  ✗ {file_type}: NOT FOUND")
+        
+        return detected
         
     def load_file(self) -> bool:
-        """
-        Load WP LOA workbook
-        
-        Returns:
-            True if successful
-        """
+        """Load WP LOA workbook and BUDGET sheet. Returns True if successful."""
         try:
-            # Load with openpyxl for formula writing
             self.wb = openpyxl.load_workbook(self.file_path)
             self.ws = self.wb['page']
-            
-            # Also load as dataframe for validation
             self.df = pd.read_excel(self.file_path, sheet_name='page')
             
-            # Load BUDGET sheet for reference
             try:
                 self.budget_df = pd.read_excel(self.file_path, sheet_name='BUDGET')
             except:
@@ -115,104 +91,98 @@ class WPLOAFormulaProcessor:
         except Exception as e:
             raise Exception(f"Error loading WP LOA file: {str(e)}")
     
-    def create_formulas(self) -> None:
+    def create_formulas(self, availment_file: Optional[str] = None,
+                       loa_approver_file: Optional[str] = None) -> None:
         """
-        Create all formulas and headers in the worksheet
+        Create all formulas and headers in columns K-AB.
         
-        Step 1: Add headers in row 1 (columns K-AA)
-        Step 2: Add formulas in data rows (row 2+)
+        Supports auto-detection of external files or uses provided paths
         
-        Formulas created (matching user's manual formulas):
-        - K: Part 1 of PID (extracted from H by splitting on hyphens)
-        - L: Part 2 of PID (extracted from H)
-        - M: Part 3 of PID (extracted from H) - Year
-        - N: Part 4 of PID (extracted from H)
-        - O: L1 concatenation: =L&"-"&M&"-"&N (parts 2-3-4)
-        - P: L2 (full PID copy from H)
-        - Q-AA: VLOOKUP formulas using P ($P in absolute ref) as lookup key on BUDGET!$B:$N
+        Column breakdown:
+        - K-N: Extract PID parts from column H (e.g., "I-BSRF-26-SA" → K=I, L=BSRF, M=26, N=SA)
+        - O: L1 = concatenate K-L-M
+        - P: L2 = copy of H (full PID)
+        - Q-U: BUDGET VLOOKUP formulas
+        - V: AVAILMENT TRACKER = check if BOQ PR exists
+        - W-X: PROPONENT lookups and formatting
+        - Y: DIV IN REPORT mapping
+        - Z: PROGRAM IN REPORT = Program name from BUDGET
+        - AA-AB: BUDGET VLOOKUP formulas (Project and Subproject names)
         
-        Note: All VLOOKUP uses BUDGET!$B:$N range (columns B through N only)
-              Lookup key is P (full PID), not O (L1)
+        Args:
+            availment_file: Path to CAPEX AVAILMENT file (auto-detected if None)
+            loa_approver_file: Path to LOA CURRENT APPROVER file (auto-detected if None)
         """
         
-        # STEP 1: Add headers in row 1 (columns K-AA)
-        for col_idx, header in enumerate(self.NEW_COLUMN_HEADERS, start=11):  # Start at K (column 11)
-            cell = self.ws.cell(row=1, column=col_idx)
-            cell.value = header
+        # Auto-detect files if not provided
+        if availment_file is None or loa_approver_file is None:
+            detected = self.auto_detect_external_files()
+            if availment_file is None:
+                availment_file = detected.get('capex_availment') or '2026 CAPEX AVAILMENT_as of Feb 16.xlsx'
+            if loa_approver_file is None:
+                loa_approver_file = detected.get('loa_approver') or 'LOA_CURRENT_APPROVER (Auto Email).xlsx'
         
-        # STEP 2: Get last data row and add formulas
+        # Extract just the filenames (Excel formulas use filenames, not full paths)
+        availment_filename = Path(availment_file).name
+        loa_approver_filename = Path(loa_approver_file).name
+        
+        # STEP 1: Add column headers in row 1 (columns K-AB)
+        # Headers for columns K through AB
+        column_headers = [
+            'PID (Mother and Sub)',  # K - Column 11
+            '1',                      # L - Column 12
+            'YEAR',                  # M - Column 13
+            '4',                      # N - Column 14
+            'L1',                      # O - Column 15
+            'L2',                      # P - Column 16
+            'PROGRAM MBR',           # Q - Column 17
+            'DIV',                    # R - Column 18
+            'DEP',                    # S - Column 19
+            'FUNDING',               # T - Column 20
+            'CFU SPONSOR',           # U - Column 21
+            'AVAILMENT TRACKER',     # V - Column 22
+            'PROPONENT',             # W - Column 23
+            'PROPONENT 1',           # X - Column 24
+            'DIV IN REPORT',         # Y - Column 25
+            'PROGRAM IN REPORT',     # Z - Column 26 (NEW)
+            'PROJ',                  # AA - Column 27
+            'SUBPROJ'                # AB - Column 28
+        ]
+        
+        # Write headers to row 1
+        for col_idx, header in enumerate(column_headers, start=11):
+            self.ws.cell(row=1, column=col_idx).value = header
+        
+        # STEP 2: Add formulas in rows 2 onwards
         last_row = self.ws.max_row
         
-        # Start from row 2 (skip header)
         for row in range(2, last_row + 1):
-            # Column K: Part 1 of PID (extract first part before first hyphen)
-            # From "I-BSRF-26-SA" → "I"
+            # Extract PID parts from H column
             self.ws[f'K{row}'].value = f'=LEFT(H{row},FIND("-",H{row})-1)'
-            
-            # Column L: Part 2 of PID (extract second part)
-            # From "I-BSRF-26-SA" → "BSRF"
             self.ws[f'L{row}'].value = f'=TRIM(MID(SUBSTITUTE(H{row},"-",REPT(" ",100)),100,100))'
-            
-            # Column M: Part 3 of PID (extract third part - Year)
-            # From "I-BSRF-26-SA" → "26"
             self.ws[f'M{row}'].value = f'=TRIM(MID(SUBSTITUTE(H{row},"-",REPT(" ",100)),200,100))'
-            
-            # Column N: Part 4 of PID (extract fourth part)
-            # From "I-BSRF-26-SA" → "SA"
             self.ws[f'N{row}'].value = f'=TRIM(MID(SUBSTITUTE(H{row},"-",REPT(" ",100)),300,100))'
             
-            # Column O: L1 formula (parts 2-3-4): =L&"-"&M&"-"&N
-            # From parts: "BSRF-26-SA"
-            self.ws[f'O{row}'].value = f'=L{row}&"-"&M{row}&"-"&N{row}'
+            # Derived columns
+            self.ws[f'O{row}'].value = f'=K{row}&"-"&L{row}&"-"&M{row}'  # L1: concatenate parts
+            self.ws[f'P{row}'].value = f'=H{row}'  # L2: copy full PID
             
-            # Column P: L2 formula (full PID): =H
-            self.ws[f'P{row}'].value = f'=H{row}'
-            
-            # Column Q: PROGRAM_MBR = VLOOKUP($P, BUDGET!$B:$N, 9, 0)
-            # User's formula: =VLOOKUP($P634,BUDGET!$B:$N,9,0)
-            # Column 9 in range B:N = Column J (Program Name)
+            # BUDGET lookups (range B:N, base lookup key is P)
             self.ws[f'Q{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'
-            
-            # Column R: DIV = VLOOKUP($P, BUDGET!$B:$N, 6, 0)
-            # User's formula: =VLOOKUP($P634,BUDGET!$B:$N,6,0)
-            # Column 6 in range B:N = Column G (Division)
             self.ws[f'R{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,6,0),"N/A")'
-            
-            # Column S: DEP = VLOOKUP($P, BUDGET!$B:$N, 5, 0)
-            # User's formula: =VLOOKUP($P634,BUDGET!$B:$N,5,0)
-            # Column 5 in range B:N = Column F (Department)
             self.ws[f'S{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,5,0),"N/A")'
-            
-            # Column T: FUNDING = VLOOKUP($P, BUDGET!$B:$N, 12, 0)
-            # User's formula: =VLOOKUP($P634,BUDGET!$B:$N,12,0)
-            # Column 12 in range B:N = Column M (Funding Source)
             self.ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,12,0),"N/A")'
-            
-            # Column U: CFU_SPONSOR = VLOOKUP($P, BUDGET!$B:$N, 3, 0)
-            # User's formula: =VLOOKUP($P634,BUDGET!$B:$N,3,0)
-            # Column 3 in range B:N = Column D (CFU Sponsor)
             self.ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,3,0),"N/A")'
             
-            # Column V: AVAILMENT_TRACKER = VLOOKUP to 2026 CAPEX AVAILMENT workbook
-            # Lookup: Column D (BOQ_PR - Ariba reference number)
-            # File: 2026 CAPEX AVAILMENT_as of Feb 16.xlsx, sheet 'data_2026'
-            # Lookup Range: Column C (MaximoReference)
-            # Return: If found and contains "Ariba", return "For Ariba PR Translation"
-            # Default: "For Ariba PR Translation" if not found
-            self.ws[f'V{row}'].value = f"=IFNA(VLOOKUP(D{row},'[2026 CAPEX AVAILMENT_as of Feb 16.xlsx]data_2026'!$C:$C,1,0),\"For Ariba PR Translation\")"
+            # AVAILMENT TRACKER: return D value if found, else fallback message
+            # Uses detected or provided filename
+            self.ws[f'V{row}'].value = f"=IF(COUNTIF('[{availment_filename}]data_2026'!$C:$C,D{row})>0,D{row},\"For Ariba PR Translation\")"
             
-            # Column W: PROPONENT = VLOOKUP from LOA_CURRENT_APPROVER workbook
-            # Lookup: Column A (WP LOA number or approver ID)
-            # File: LOA_CURRENT_APPROVER (Auto Email).xlsx, sheet 'page'
-            # Return: Column 9 (Reported By)
-            # Wrapper: PROPER to format the name properly
-            self.ws[f'W{row}'].value = f"=IFERROR(PROPER(VLOOKUP(A{row},'[LOA_CURRENT_APPROVER (Auto Email).xlsx]page'!$A:$I,9,0)),\"N/A\")"
+            # PROPONENT lookups
+            # Uses detected or provided filename
+            self.ws[f'W{row}'].value = f"=IFERROR(PROPER(VLOOKUP(A{row},'[{loa_approver_filename}]page'!$A:$I,9,0)),\"N/A\")"
             
-            # Column X: PROPONENT_1 (formatted name)
-            # If PROPONENT (W) already in "First Last" format (no comma), return as-is
-            # If PROPONENT in "Last, First" format (has comma), rearrange to "First Last"
-            # Example: "Michelle Buga-Ay" → "Michelle Buga-Ay" (no change)
-            # Example: "Padilla, Danross S." → "Danross S. Padilla" (rearranged)
+            # Format PROPONENT (convert "Last, First" to "First Last" if needed)
             proponent1_formula = (
                 f"=IF(ISERROR(FIND(\",\",W{row})),"
                 f"W{row},"
@@ -220,8 +190,7 @@ class WPLOAFormulaProcessor:
             )
             self.ws[f'X{row}'].value = proponent1_formula
             
-            # Column Y: DIV_IN_REPORT = Nested IF mapping based on Column R (DIV code)
-            # Maps DIV codes to formatted division names with responsible person
+            # Division mapping
             div_formula = (
                 f'=IF(R{row}="B&D","B&D",'
                 f'IF(R{row}="CIPE","CIPE/Ting",'
@@ -237,41 +206,20 @@ class WPLOAFormulaProcessor:
             )
             self.ws[f'Y{row}'].value = div_formula
             
-            # Column Z: PROJ = VLOOKUP($P, BUDGET!$B:$N, 10, 0)
-            # Column 10 in range B:N = Column K (Project Name)
-            self.ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,10,0),"N/A")'
+            # PROGRAM IN REPORT: VLOOKUP to get Program name
+            self.ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'
             
-            # Column AA: SUBPROJ = VLOOKUP($P, BUDGET!$B:$N, 11, 0)
-            # Column 11 in range B:N = Column L (Sub-project Name)
-            self.ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,11,0),"N/A")'
+            # More BUDGET lookups (shifted to AA and AB)
+            self.ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,10,0),"N/A")'
+            self.ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,11,0),"N/A")'
     
     def add_external_file_support(self, availment_file: Optional[str] = None,
                                   loa_approver_file: Optional[str] = None) -> None:
-        """
-        External file support is currently disabled.
-        Columns V and W use static default values.
-        
-        This method is kept for future compatibility but doesn't create extra sheets.
-        
-        Args:
-            availment_file: (Not used)
-            loa_approver_file: (Not used)
-        """
-        # All columns V, W, X already have default values from create_formulas()
-        # No additional processing needed
+        """Placeholder for external file support (currently disabled)."""
         return
     
-    
     def save(self, output_path: str) -> bool:
-        """
-        Save workbook with formulas
-        
-        Args:
-            output_path: Path to save processed file
-            
-        Returns:
-            True if successful
-        """
+        """Save workbook with formulas. Returns True if successful."""
         try:
             self.wb.save(output_path)
             return True
@@ -283,19 +231,18 @@ class WPLOAFormulaProcessor:
                         availment_file: Optional[str] = None,
                         loa_approver_file: Optional[str] = None) -> bool:
         """
-        Complete processing pipeline
+        Complete processing pipeline: load, create formulas, save.
+        
+        Automatically detects external files if not provided.
         
         Args:
-            output_path: Path to save processed file
-            availment_file: Optional CAPEX AVAILMENT file
-            loa_approver_file: Optional LOA CURRENT APPROVER file
-            
-        Returns:
-            True if successful
+            output_path: Path to save output file
+            availment_file: Optional path to CAPEX AVAILMENT file (auto-detected if None)
+            loa_approver_file: Optional path to LOA APPROVER file (auto-detected if None)
         """
         try:
             self.load_file()
-            self.create_formulas()
+            self.create_formulas(availment_file, loa_approver_file)
             self.add_external_file_support(availment_file, loa_approver_file)
             self.save(output_path)
             return True
@@ -304,16 +251,16 @@ class WPLOAFormulaProcessor:
             return False
     
     def get_summary(self) -> Dict:
-        """Get processing summary"""
+        """Get processing summary."""
         return {
-            'total_rows': self.ws.max_row - 1,  # Exclude header
-            'columns_added': 17,  # K through AA
+            'total_rows': self.ws.max_row - 1,
+            'columns_added': 18,
             'output_type': 'Excel Formulas',
-            'column_range': 'K:AA',
+            'column_range': 'K:AB',
             'columns_created': [
-                'PID (Mother and Sub)', '1', 'YEAR', '3', 'L1', 'L2',
+                'PID (Mother and Sub)', '1', 'YEAR', '4', 'L1', 'L2',
                 'PROGRAM_MBR', 'DIV', 'DEP', 'FUNDING', 'CFU_SPONSOR',
                 'AVAILMENT_TRACKER', 'PROPONENT', 'PROPONENT_1',
-                'DIV_IN_REPORT', 'PROJ', 'SUBPROJ'
+                'DIV_IN_REPORT', 'PROGRAM_IN_REPORT', 'PROJ', 'SUBPROJ'
             ]
         }

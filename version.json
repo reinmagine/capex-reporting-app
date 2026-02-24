@@ -1,0 +1,19 @@
+{
+  "version": "1.0.1",
+  "release_date": "2026-02-24",
+  "download_url": "https://github.com/ludreinsalvador/capex-reporting-app/releases/download/v1.0.1/CAPEX_Reporting_Tool.exe",
+  "notes": "Initial release with VLOOKUP formulas, file auto-detection, and auto-update system. Supports WP LOA Report, CJI, RFP Reclass, and ZMM processors.",
+  "changes": [
+    "✓ Added auto-update system - users get updates automatically",
+    "✓ Fixed VLOOKUP formulas across all processors",
+    "✓ Implemented flexible file detection (handles naming variations)",
+    "✓ Added 18 formula columns (K-AB) in WP LOA processor",
+    "✓ Improved error handling with IFERROR wrapping",
+    "✓ Desktop GUI with tabbed interface"
+  ],
+  "requirements": {
+    "python": "3.8+",
+    "os": "Windows 7+"
+  },
+  "notify_users": false
+}
