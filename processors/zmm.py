@@ -1,8 +1,11 @@
 """
 ZMM file processor (STEP 17)
 Handles PR number delimiting and column copying
+Supports both traditional (pandas-based) and formula-based (fast) processing
 """
 import pandas as pd
+import openpyxl
+from openpyxl.utils import get_column_letter
 from processors.base import BaseProcessor
 from config import OUTPUT_COLUMNS
 
@@ -12,6 +15,9 @@ class ZMMProcessor(BaseProcessor):
     
     def __init__(self):
         super().__init__('zmm')
+        self.wb = None
+        self.ws = None
+        self.file_path = None
     
     def process_basic(self):
         """
@@ -106,6 +112,67 @@ class ZMMProcessor(BaseProcessor):
         }
         
         return stats
+    
+    def process_basic_formula(self, file_path):
+        """
+        Fast formula-based processing for ZMM files
+        Creates formulas for PR number processing instead of pandas calculations
+        
+        Args:
+            file_path: Path to input ZMM file
+        """
+        # Load file with openpyxl
+        self.file_path = file_path
+        self.df = pd.read_excel(file_path)
+        self.wb = openpyxl.load_workbook(file_path)
+        self.ws = self.wb.active
+        
+        # Validate columns
+        self.validate_and_prepare()
+        
+        # Get PR column
+        pr_col = self.columns.get('ariba_pr_ref')
+        if not pr_col:
+            raise ValueError("Ariba PR Reference column not found")
+        
+        # Get column index
+        pr_idx = self._get_column_index(pr_col)
+        pr_letter = get_column_letter(pr_idx)
+        
+        # Add new columns with formulas
+        # Column for PR delimited (remove v1, v2, etc.)
+        delimit_col_idx = self.ws.max_column + 1
+        delimit_col_letter = get_column_letter(delimit_col_idx)
+        
+        # Add header
+        self.ws.cell(row=1, column=delimit_col_idx).value = OUTPUT_COLUMNS['pr_ref_delimited']
+        
+        # Add formula to remove version numbers (v1, v2, etc.)
+        for row in range(2, self.ws.max_row + 1):
+            # Formula to remove v followed by numbers
+            formula = f"=REGEX({pr_letter}{row},\"(v[0-9]+)$\",\"\",\"g\")"
+            self.ws.cell(row=row, column=delimit_col_idx).value = formula
+        
+        # Column for PR as numeric
+        numeric_col_idx = delimit_col_idx + 1
+        numeric_col_letter = get_column_letter(numeric_col_idx)
+        
+        # Add header
+        self.ws.cell(row=1, column=numeric_col_idx).value = OUTPUT_COLUMNS['pr_ref_numeric']
+        
+        # Add formula to convert to numeric
+        for row in range(2, self.ws.max_row + 1):
+            formula = f"=VALUE({delimit_col_letter}{row})"
+            self.ws.cell(row=row, column=numeric_col_idx).value = formula
+        
+        return self
+    
+    def _get_column_index(self, column_name: str) -> int:
+        """Get column index (1-based) from column name in header row"""
+        for idx, cell in enumerate(self.ws[1], start=1):
+            if cell.value == column_name:
+                return idx
+        raise ValueError(f"Column '{column_name}' not found in row 1")
 
 
 class ZMMConsolidator:
