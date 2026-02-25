@@ -4,34 +4,54 @@ All notable changes to the CAPEX Reporting Tool will be documented in this file.
 
 ## Installation & Distribution
 
-**For Users:**
+**For Windows Users:**
 1. Download `CAPEX_Reporting_Tool.exe` from GitHub Releases
 2. Double-click to run
 3. App automatically checks for updates
 4. Updates install silently on next restart
 
+**For macOS Users:**
+1. Download `CAPEX_Reporting_Tool.app.zip` from GitHub Releases
+2. Unzip to get `CAPEX_Reporting_Tool.app`
+3. Double-click to run (may need to allow in Security settings)
+4. App automatically checks for updates
+5. Updates install silently on next restart
+
 **For Developers:**
 - Update `config/version.py` with new version number
-- Build exe: `pyinstaller CAPEX_Reporting_Tool.spec`
+- Build Windows: `python -m PyInstaller build-scripts/CAPEX_Reporting_Tool.spec`
+- Build macOS: `python -m PyInstaller build-scripts/CAPEX_Reporting_Tool_macOS.spec`
 - Create GitHub release with tag `v{VERSION}`
-- Upload exe to release
-- Update `version.json` with new version URL
+- Upload both executables to release
+- Update `version.json` with platform-specific download URLs
 
 ---
 
-## [1.0.1] - 2026-02-24
+## [1.0.1] - 2026-02-25
 
-### Added
-- ✓ **Auto-Update System** - Users get updates automatically without manual intervention
-  - Silent background checking
-  - Graceful handling of offline mode
-  - Full audit trail in `logs/update.log`
-  - Version comparison (e.g., 1.0.2 > 1.0.1)
-  - Automatic installation on next restart
+### Added - Cross-Platform Support
+- ✓ **macOS Support** - Full application support for Apple macOS
+  - App bundle (.app) for native macOS experience
+  - Compressed ZIP distribution (~80 MB)
+  - Auto-updater detects macOS and downloads correct version
+  - Shell script installation (equivalent to Windows batch approach)
+  - Same features as Windows version
 
-- ✓ **Version Tracking** - New `config/version.py` for centralized version management
+- ✓ **Platform Detection** - Auto-updater automatically:
+  - Detects Windows vs macOS
+  - Downloads correct executable version
+  - Uses OS-specific installation method
+  - Maintains single version.json for both platforms
 
-- ✓ **Release Documentation** - This file and `version.json` for release metadata
+- ✓ **Dual Build Configuration** - PyInstaller specs for both:
+  - Windows: `CAPEX_Reporting_Tool.spec` → .exe (54 MB)
+  - macOS: `CAPEX_Reporting_Tool_macOS.spec` → .app bundle
+
+- ✓ **Auto-Update System** - Cross-platform version:
+  - Windows: Uses batch file replacement
+  - macOS: Uses shell script replacement
+  - Same transparent user experience on both platforms
+  - Graceful handling of offline mode on both OS
 
 ### Features (from previous work)
 - ✓ **18 Formula Columns (K-AB)** in WP LOA processor including:
