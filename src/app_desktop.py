@@ -27,33 +27,7 @@ from config import EXCHANGE_RATES
 from config.version import VERSION, VERSION_CHECK_URL
 
 
-def get_live_exchange_rates():
-    """Fetch live exchange rates from API"""
-    try:
-        response = requests.get('https://api.exchangerate-api.com/v4/latest/USD', timeout=5)
-        data = response.json()
-        
-        if 'rates' in data:
-            php_rate = data['rates'].get('PHP', 57)
-            sgd_rate = data['rates'].get('SGD', 1.34)
-            
-            return {
-                'PHP_TO_USD': 1 / php_rate,
-                'SGD_TO_USD': 1 / sgd_rate,
-                'PHP': php_rate,
-                'SGD': sgd_rate,
-                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }
-    except:
-        pass
-    
-    return {
-        'PHP_TO_USD': 1/57,
-        'SGD_TO_USD': 1/1.34,
-        'PHP': 57,
-        'SGD': 1.34,
-        'timestamp': 'Offline (using default rates)'
-    }
+
 
 
 class CAPEXReportingApp:
@@ -63,8 +37,13 @@ class CAPEXReportingApp:
         self.root.geometry("1000x800")
         self.root.configure(bg='#f0f0f0')
         
-        # Fetch exchange rates on startup
-        self.exchange_rates = get_live_exchange_rates()
+        # Default exchange rates (no live fetching)
+        self.exchange_rates = {
+            'PHP_TO_USD': 1/57,
+            'SGD_TO_USD': 1/1.34,
+            'PHP': 57,
+            'SGD': 1.34
+        }
         
         # Create main frame
         main_frame = tk.Frame(root, bg='#f0f0f0')
@@ -72,13 +51,13 @@ class CAPEXReportingApp:
         
         # Title
         title = tk.Label(main_frame, text="CAPEX Reporting Tool", 
-                        font=("Segoe UI", 24, "bold"), bg='#f0f0f0', fg='#1e3c72')
-        title.pack(pady=(0, 5))
+                        font=("Segoe UI", 20, "bold"), bg='#f0f0f0', fg='#29348F')
+        title.pack(pady=(0, 2))
         
         subtitle = tk.Label(main_frame, 
-                           text="Refactored", 
-                           font=("Segoe UI", 10), bg='#f0f0f0', fg='#666')
-        subtitle.pack(pady=(0, 20))
+                           text=f"v{VERSION} •", 
+                           font=("Segoe UI", 9), bg='#f0f0f0', fg='#666')
+        subtitle.pack(pady=(0, 15))
         
         # Notebook for tabs
         self.notebook = ttk.Notebook(main_frame)
@@ -91,63 +70,26 @@ class CAPEXReportingApp:
         self.create_wp_loa_tab()
         
         # Loading frame (initially hidden)
-        self.loading_frame = tk.Frame(root, bg='white', bd=2, relief=tk.RAISED)
+        self.loading_frame = tk.Frame(root, bg='#ffffff')
         self.loading_label = tk.Label(self.loading_frame, 
                                      text="Processing file, please wait...", 
-                                     font=("Segoe UI", 12, "bold"), 
-                                     bg='white', fg='#1e3c72', pady=20, padx=40)
+                                     font=("Segoe UI", 11, "bold"), 
+                                     bg='#ffffff', fg='#29348F', pady=20, padx=40)
         self.loading_label.pack()
         
         self.progress = ttk.Progressbar(self.loading_frame, mode='indeterminate', length=300)
         self.progress.pack(pady=(0, 20), padx=40)
         
-        # Status bar
+        # Status bar (simple and clean)
         self.status_var = tk.StringVar(value="Ready")
         status_bar = tk.Label(root, textvariable=self.status_var, 
-                            font=("Segoe UI", 9), bg='#e3f2fd', 
-                            fg='#1976d2', anchor=tk.W, padx=10, pady=5)
+                            font=("Segoe UI", 8), bg='#e8e8e8', 
+                            fg='#555', anchor=tk.W, padx=10, pady=5)
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # Exchange rates info
-        rates_text = self.get_rates_display_text()
-        self.rates_label = tk.Label(root, text=rates_text, font=("Segoe UI", 9), 
-                                   bg='#fff3cd', fg='#856404', padx=10, pady=5)
-        self.rates_label.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # Refresh rates button
-        refresh_frame = tk.Frame(root, bg='#fff3cd')
-        refresh_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        refresh_btn = tk.Button(refresh_frame, text="Refresh Exchange Rates", 
-                               command=self.refresh_rates, font=("Segoe UI", 8),
-                               bg='#ffc107', fg='#000', padx=10, pady=2,
-                               relief=tk.FLAT, cursor="hand2")
-        refresh_btn.pack(pady=2)
         
         self.selected_file = None
     
-    def get_rates_display_text(self):
-        """Get formatted exchange rates display text"""
-        php_rate = self.exchange_rates.get('PHP', 57)
-        sgd_rate = self.exchange_rates.get('SGD', 1.34)
-        timestamp = self.exchange_rates.get('timestamp', 'Unknown')
-        
-        return f"Exchange Rates ({timestamp}): 1 USD = {php_rate:.4f} PHP | 1 USD = {sgd_rate:.4f} SGD"
-    
-    def refresh_rates(self):
-        """Refresh exchange rates from API"""
-        self.status_var.set("Fetching live exchange rates...")
-        self.root.update()
-        
-        self.exchange_rates = get_live_exchange_rates()
-        rates_text = self.get_rates_display_text()
-        self.rates_label.config(text=rates_text)
-        
-        self.status_var.set("Exchange rates updated!")
-        messagebox.showinfo("Success", 
-                          f"Exchange rates updated!\n\n" +
-                          f"1 USD = {self.exchange_rates['PHP']:.4f} PHP\n" +
-                          f"1 USD = {self.exchange_rates['SGD']:.4f} SGD")
+
     
     def show_loading(self, message="Processing file, please wait..."):
         """Show loading indicator"""
@@ -169,8 +111,8 @@ class CAPEXReportingApp:
         
         # File type selection
         type_frame = tk.LabelFrame(tab, text="Select Report Type", 
-                                  font=("Segoe UI", 11, "bold"), bg='#f0f0f0', 
-                                  fg='#1e3c72', padx=15, pady=15)
+                                  font=("Segoe UI", 10, "bold"), bg='#f0f0f0', 
+                                  fg='#29348F', padx=15, pady=15)
         type_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         self.file_type = tk.StringVar(value="cji5")
@@ -185,8 +127,8 @@ class CAPEXReportingApp:
         
         for text, value in types:
             rb = tk.Radiobutton(type_frame, text=text, variable=self.file_type, 
-                               value=value, font=("Segoe UI", 10), bg='#f0f0f0',
-                               activebackground='#f0f0f0', pady=3)
+                               value=value, font=("Segoe UI", 9), bg='#f0f0f0',
+                               activebackground='#f0f0f0', fg='#333', pady=4)
             rb.pack(anchor=tk.W)
         
         # File selection
@@ -195,22 +137,22 @@ class CAPEXReportingApp:
         
         self.file_path = tk.StringVar(value="No file selected")
         file_label = tk.Label(file_frame, textvariable=self.file_path, 
-                             font=("Segoe UI", 9), bg='#f0f0f0', fg='#333')
+                             font=("Segoe UI", 9), bg='#f0f0f0', fg='#555')
         file_label.pack(side=tk.LEFT, padx=(0, 10))
         
         browse_btn = tk.Button(file_frame, text="Browse File", 
-                              command=self.browse_file, font=("Segoe UI", 10, "bold"),
-                              bg='#2a5298', fg='white', padx=15, pady=8,
+                              command=self.browse_file, font=("Segoe UI", 9, "bold"),
+                              bg='#29348F', fg='white', padx=15, pady=8,
                               relief=tk.FLAT, cursor="hand2")
         browse_btn.pack(side=tk.RIGHT)
         
         # Process button
         self.process_btn = tk.Button(tab, text="Process File", 
                                      command=self.process_file_threaded, 
-                                     font=("Segoe UI", 12, "bold"),
-                                     bg='#28a745', fg='white', padx=30, pady=12,
+                                     font=("Segoe UI", 11, "bold"),
+                                     bg='#29348F', fg='white', padx=30, pady=10,
                                      relief=tk.FLAT, cursor="hand2", state=tk.DISABLED)
-        self.process_btn.pack(pady=10)
+        self.process_btn.pack(pady=15)
     
     def create_advanced_tab(self):
         """Create advanced features tab"""
@@ -218,62 +160,49 @@ class CAPEXReportingApp:
         self.notebook.add(tab, text="Advanced (STEP 6-7, 12-14, 1)")
         
         adv_frame = tk.LabelFrame(tab, text="Advanced Processing Options", 
-                                 font=("Segoe UI", 11, "bold"), bg='#f0f0f0', 
-                                 fg='#1e3c72', padx=15, pady=15)
+                                 font=("Segoe UI", 10, "bold"), bg='#f0f0f0', 
+                                 fg='#29348F', padx=15, pady=15)
         adv_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Pivot table generation (STEP 6-7)
         pivot_label = tk.Label(adv_frame, text="Pivot Table Generation (STEP 6-7):", 
-                              font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
+                              font=("Segoe UI", 9, "bold"), bg='#f0f0f0', fg='#29348F')
         pivot_label.pack(anchor=tk.W, pady=(5, 5))
         
         self.pivot_cji5_btn = tk.Button(adv_frame, text="Process CJI5 with Pivot Table", 
                                        command=lambda: self.process_with_pivot_threaded('cji5'),
-                                       font=("Segoe UI", 10), bg='#17a2b8', fg='white',
-                                       padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                       font=("Segoe UI", 9), bg='#29348F', fg='white',
+                                       padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.pivot_cji5_btn.pack(fill=tk.X, pady=2)
         
         self.pivot_cji3_btn = tk.Button(adv_frame, text="Process CJI3 with Pivot Table", 
                                        command=lambda: self.process_with_pivot_threaded('cji3'),
-                                       font=("Segoe UI", 10), bg='#17a2b8', fg='white',
-                                       padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                       font=("Segoe UI", 9), bg='#29348F', fg='white',
+                                       padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.pivot_cji3_btn.pack(fill=tk.X, pady=2)
         
         # Filtering options
         filter_label = tk.Label(adv_frame, text="\nFiltering & Special Processing:", 
-                               font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
+                               font=("Segoe UI", 9, "bold"), bg='#f0f0f0', fg='#29348F')
         filter_label.pack(anchor=tk.W, pady=(10, 5))
         
         self.filter_gnt_btn = tk.Button(adv_frame, text="Filter GNT-OTACP-25 Car Plan (STEP 1, 9-10)", 
                                        command=self.filter_carplan,
-                                       font=("Segoe UI", 10), bg='#6c757d', fg='white',
-                                       padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                       font=("Segoe UI", 9), bg='#757575', fg='white',
+                                       padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.filter_gnt_btn.pack(fill=tk.X, pady=2)
         
         self.no_carplan_btn = tk.Button(adv_frame, text="Process CJI5 Without Car Plan (STEP 14)", 
                                         command=self.process_cji5_no_carplan,
-                                        font=("Segoe UI", 10), bg='#6c757d', fg='white',
-                                        padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                        font=("Segoe UI", 9), bg='#757575', fg='white',
+                                        padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.no_carplan_btn.pack(fill=tk.X, pady=2)
         
         self.remove_cbip_btn = tk.Button(adv_frame, text="Remove M-CBIP-25 from RFP/Reclass (STEP 12-13)", 
                                         command=self.remove_cbip,
-                                        font=("Segoe UI", 10), bg='#6c757d', fg='white',
-                                        padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                        font=("Segoe UI", 9), bg='#757575', fg='white',
+                                        padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.remove_cbip_btn.pack(fill=tk.X, pady=2)
-        
-        # Help text
-        help_text = scrolledtext.ScrolledText(adv_frame, height=6, width=50, 
-                                             font=("Segoe UI", 8), bg='#f8f9fa', 
-                                             fg='#333', wrap=tk.WORD)
-        help_text.pack(fill=tk.BOTH, expand=True, pady=(15, 0))
-        help_text.insert(tk.END, "PRIORITY 1 IMPLEMENTATIONS (COMPLETE):\n\n")
-        help_text.insert(tk.END, "✓ Unified Currency Converter - All files use single conversion logic\n")
-        help_text.insert(tk.END, "✓ File Validation - Validates column structure before processing\n")
-        help_text.insert(tk.END, "✓ Flexible Column Mapping - Handles various column name variations\n")
-        help_text.insert(tk.END, "✓ Modular Processors - Each file type has dedicated processor\n")
-        help_text.insert(tk.END, "✓ Removed Redundant Code - Eliminated duplicate functions\n")
-        help_text.config(state=tk.DISABLED)
     
     def create_consolidation_tab(self):
         """Create consolidation & merge tab"""
@@ -281,47 +210,33 @@ class CAPEXReportingApp:
         self.notebook.add(tab, text="Consolidation (STEP 1, 8)")
         
         cons_frame = tk.LabelFrame(tab, text="File Consolidation & Merge Options", 
-                                  font=("Segoe UI", 11, "bold"), bg='#f0f0f0', 
-                                  fg='#1e3c72', padx=15, pady=15)
+                                  font=("Segoe UI", 10, "bold"), bg='#f0f0f0', 
+                                  fg='#29348F', padx=15, pady=15)
         cons_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # ZMM Consolidation (STEP 1)
         zmm_label = tk.Label(cons_frame, text="ZMM Consolidation (STEP 1):", 
-                            font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
+                            font=("Segoe UI", 9, "bold"), bg='#f0f0f0', fg='#29348F')
         zmm_label.pack(anchor=tk.W, pady=(5, 5))
         
         self.consolidate_zmm_btn = tk.Button(cons_frame, 
                                             text="Consolidate Multiple ZMM Files with Header Validation", 
                                             command=self.consolidate_zmm_files,
-                                            font=("Segoe UI", 10), bg='#ff6f00', fg='white',
-                                            padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                            font=("Segoe UI", 9), bg='#e65100', fg='white',
+                                            padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.consolidate_zmm_btn.pack(fill=tk.X, pady=2)
         
         # CJI Merge (STEP 8)
         merge_label = tk.Label(cons_frame, text="\nData Merge & Lookup (STEP 8):", 
-                              font=("Segoe UI", 10, "bold"), bg='#f0f0f0')
+                              font=("Segoe UI", 9, "bold"), bg='#f0f0f0', fg='#29348F')
         merge_label.pack(anchor=tk.W, pady=(10, 5))
         
         self.merge_cji_btn = tk.Button(cons_frame, 
                                       text="Merge CJI5 & CJI3 Data (Priority 3)", 
                                       command=self.merge_cji_data,
-                                      font=("Segoe UI", 10), bg='#9c27b0', fg='white',
-                                      padx=15, pady=8, relief=tk.FLAT, cursor="hand2")
+                                      font=("Segoe UI", 9), bg='#6a1b9a', fg='white',
+                                      padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
         self.merge_cji_btn.pack(fill=tk.X, pady=2)
-        
-        # Help text
-        help_text = scrolledtext.ScrolledText(cons_frame, height=8, width=50, 
-                                             font=("Segoe UI", 8), bg='#f8f9fa', 
-                                             fg='#333', wrap=tk.WORD)
-        help_text.pack(fill=tk.BOTH, expand=True, pady=(15, 0))
-        help_text.insert(tk.END, "PRIORITY 1-2 IMPLEMENTATIONS:\n\n")
-        help_text.insert(tk.END, "✓ STEP 1 - ZMM Consolidation:\n")
-        help_text.insert(tk.END, "  - Validates headers match\n")
-        help_text.insert(tk.END, "  - Consolidates files with matching headers\n\n")
-        help_text.insert(tk.END, "⏳ STEP 8 - CJI Merge (Priority 3):\n")
-        help_text.insert(tk.END, "  - Detects duplicates\n")
-        help_text.insert(tk.END, "  - Merges CJI5 & CJI3")
-        help_text.config(state=tk.DISABLED)
     
     def browse_file(self):
         """Browse and select file"""
@@ -343,7 +258,7 @@ class CAPEXReportingApp:
         thread.start()
     
     def process_file(self):
-        """Process selected file using appropriate processor"""
+        """Process selected file using formula-based approach (instant processing)"""
         if not self.selected_file:
             messagebox.showerror("Error", "Please select a file first!")
             return
@@ -351,8 +266,8 @@ class CAPEXReportingApp:
         try:
             file_type = self.file_type.get()
             
-            # Show loading
-            self.show_loading(f"Processing {file_type.upper()} file...")
+            # Show loading (will be very quick now)
+            self.show_loading(f"Processing {file_type.upper()} file with formulas...")
             self.process_btn.config(state=tk.DISABLED)
             
             # Validate file first
@@ -368,49 +283,46 @@ class CAPEXReportingApp:
                                    f"Missing columns:\n{missing}")
                 return
             
-            # Process based on type
+            # Use formula-based processing (instant - just creates formulas)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_name_base = ''
+            
             if file_type == 'cji5':
                 processor = CJIProcessor('cji5')
-                processor.load_file(self.selected_file)
-                processor.validate_and_prepare()
-                df = processor.process_basic(self.exchange_rates)
-                output_name = 'CJI5_Processed'
+                processor.process_basic_formula(self.selected_file, self.exchange_rates)
+                output_name_base = 'CJI5_Processed'
+                row_count = processor.ws.max_row - 1  # Subtract header
                 
             elif file_type == 'cji3':
                 processor = CJIProcessor('cji3')
-                processor.load_file(self.selected_file)
-                processor.validate_and_prepare()
-                df = processor.process_basic(self.exchange_rates)
-                output_name = 'CJI3_Processed'
+                processor.process_basic_formula(self.selected_file, self.exchange_rates)
+                output_name_base = 'CJI3_Processed'
+                row_count = processor.ws.max_row - 1
                 
             elif file_type == 'rfp':
                 processor = RFPReclassProcessor('rfp')
-                processor.load_file(self.selected_file)
-                processor.validate_and_prepare()
-                df = processor.process_with_total(self.exchange_rates, remove_cbip=False)
-                output_name = 'RFP_Processed'
+                processor.process_with_total_formula(self.selected_file, self.exchange_rates, remove_cbip=False)
+                output_name_base = 'RFP_Processed'
+                row_count = processor.ws.max_row - 1
                 
             elif file_type == 'reclass':
                 processor = RFPReclassProcessor('reclass')
-                processor.load_file(self.selected_file)
-                processor.validate_and_prepare()
-                df = processor.process_with_total(self.exchange_rates, remove_cbip=False)
-                output_name = 'Reclass_Processed'
+                processor.process_with_total_formula(self.selected_file, self.exchange_rates, remove_cbip=False)
+                output_name_base = 'Reclass_Processed'
+                row_count = processor.ws.max_row - 1
                 
             elif file_type == 'zmm':
                 processor = ZMMProcessor()
-                processor.load_file(self.selected_file)
-                processor.validate_and_prepare()
-                df = processor.process_basic()
-                output_name = 'ZMM_Processed'
+                processor.process_basic_formula(self.selected_file)
+                output_name_base = 'ZMM_Processed'
+                row_count = processor.ws.max_row - 1
             else:
                 raise ValueError("Invalid file type")
             
             # Hide loading before save dialog
             self.hide_loading()
             
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            default_filename = f'{output_name}_{timestamp}.xlsx'
+            default_filename = f'{output_name_base}_{timestamp}.xlsx'
             
             save_path = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
@@ -419,17 +331,18 @@ class CAPEXReportingApp:
             )
             
             if save_path:
-                self.show_loading("Saving file...")
-                processor.save(save_path)
-                self.hide_loading()
+                # Save the workbook with formulas
+                processor.wb.save(save_path)
                 
                 file_size = os.path.getsize(save_path) / (1024 * 1024)
                 self.status_var.set(f"Success! File saved: {os.path.basename(save_path)}")
                 messagebox.showinfo("Success", 
-                                  f"File processed successfully!\n\n" +
+                                  f"File processed successfully with FORMULAS!\n\n" +
                                   f"File: {os.path.basename(save_path)}\n" +
                                   f"Size: {file_size:.1f} MB\n" +
-                                  f"Rows: {len(df):,}")
+                                  f"Rows: {row_count:,}\n\n" +
+                                  f"✓ All formulas retained - Excel will calculate on open\n" +
+                                  f"✓ Processing took only seconds!")
             else:
                 self.status_var.set("Save cancelled")
             
@@ -694,12 +607,12 @@ class CAPEXReportingApp:
         title_frame.pack(fill=tk.X, padx=10, pady=10)
         
         title = tk.Label(title_frame, text="WP LOA Report Automation", 
-                        font=("Segoe UI", 14, "bold"), bg='#f0f0f0', fg='#1e3c72')
+                        font=("Segoe UI", 13, "bold"), bg='#f0f0f0', fg='#29348F')
         title.pack(anchor=tk.W)
         
         desc = tk.Label(title_frame, 
                        text="Automate VLOOKUP operations, filtering, and derived column generation for WP LOA reports",
-                       font=("Segoe UI", 9), bg='#f0f0f0', fg='#666')
+                       font=("Segoe UI", 8), bg='#f0f0f0', fg='#666')
         desc.pack(anchor=tk.W)
         
         # Main content frame
@@ -708,25 +621,25 @@ class CAPEXReportingApp:
         
         # Step 1: Select main WP LOA file
         file_frame = tk.LabelFrame(content, text="Step 1: Select WP LOA Report File", 
-                                  font=("Segoe UI", 11, "bold"), bg='#f0f0f0',
-                                  fg='#1e3c72', padx=15, pady=15)
+                                  font=("Segoe UI", 10, "bold"), bg='#f0f0f0',
+                                  fg='#29348F', padx=15, pady=15)
         file_frame.pack(fill=tk.X, pady=(0, 10))
         
         self.wp_loa_file_path = tk.StringVar(value="No file selected")
         file_label = tk.Label(file_frame, textvariable=self.wp_loa_file_path,
-                             font=("Segoe UI", 9), bg='#f0f0f0', fg='#333')
+                             font=("Segoe UI", 8), bg='#f0f0f0', fg='#555')
         file_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
         
         browse_btn = tk.Button(file_frame, text="Browse...", 
                               command=self.browse_wp_loa_file,
-                              font=("Segoe UI", 9), bg='#1976d2', fg='white',
+                              font=("Segoe UI", 8), bg='#29348F', fg='white',
                               padx=15, relief=tk.FLAT, cursor="hand2")
         browse_btn.pack(side=tk.LEFT)
         
         # Step 2: External files (optional)
-        extern_frame = tk.LabelFrame(content, text="Step 2: Load External Reference Files (Optional)", 
-                                    font=("Segoe UI", 11, "bold"), bg='#f0f0f0',
-                                    fg='#1e3c72', padx=15, pady=15)
+        extern_frame = tk.LabelFrame(content, text="Step 2: Load External Reference Files", 
+                                    font=("Segoe UI", 10, "bold"), bg='#f0f0f0',
+                                    fg='#29348F', padx=15, pady=15)
         extern_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # CAPEX AVAILMENT file
@@ -734,20 +647,20 @@ class CAPEXReportingApp:
         avail_frame.pack(fill=tk.X, pady=5)
         
         tk.Label(avail_frame, text="CAPEX AVAILMENT File:", 
-                font=("Segoe UI", 9), bg='#f0f0f0').pack(side=tk.LEFT)
+                font=("Segoe UI", 8), bg='#f0f0f0', fg='#333').pack(side=tk.LEFT)
         
         self.availment_file_path = tk.StringVar(value="Not selected")
         tk.Label(avail_frame, textvariable=self.availment_file_path,
-                font=("Segoe UI", 8), bg='#f0f0f0', fg='#666').pack(side=tk.LEFT, padx=10)
+                font=("Segoe UI", 8), bg='#f0f0f0', fg='#999').pack(side=tk.LEFT, padx=10)
         
         tk.Button(avail_frame, text="Browse", 
                  command=self.browse_availment_file,
-                 font=("Segoe UI", 8), bg='#17a2b8', fg='white',
+                 font=("Segoe UI", 7), bg='#29348F', fg='white',
                  padx=10, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT)
         
         tk.Button(avail_frame, text="Clear", 
                  command=lambda: self.availment_file_path.set("Not selected"),
-                 font=("Segoe UI", 8), bg='#6c757d', fg='white',
+                 font=("Segoe UI", 7), bg='#999', fg='white',
                  padx=10, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=5)
         
         # LOA Current Approver file
@@ -755,65 +668,53 @@ class CAPEXReportingApp:
         loa_frame.pack(fill=tk.X, pady=5)
         
         tk.Label(loa_frame, text="LOA Current Approver File:", 
-                font=("Segoe UI", 9), bg='#f0f0f0').pack(side=tk.LEFT)
+                font=("Segoe UI", 8), bg='#f0f0f0', fg='#333').pack(side=tk.LEFT)
         
         self.loa_approver_file_path = tk.StringVar(value="Not selected")
         tk.Label(loa_frame, textvariable=self.loa_approver_file_path,
-                font=("Segoe UI", 8), bg='#f0f0f0', fg='#666').pack(side=tk.LEFT, padx=10)
+                font=("Segoe UI", 8), bg='#f0f0f0', fg='#999').pack(side=tk.LEFT, padx=10)
         
         tk.Button(loa_frame, text="Browse", 
                  command=self.browse_loa_approver_file,
-                 font=("Segoe UI", 8), bg='#17a2b8', fg='white',
+                 font=("Segoe UI", 7), bg='#29348F', fg='white',
                  padx=10, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT)
         
         tk.Button(loa_frame, text="Clear", 
                  command=lambda: self.loa_approver_file_path.set("Not selected"),
-                 font=("Segoe UI", 8), bg='#6c757d', fg='white',
+                 font=("Segoe UI", 7), bg='#999', fg='white',
                  padx=10, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=5)
-        
-        # Info text
-        info_text = tk.Text(extern_frame, height=4, width=60, font=("Consolas", 8),
-                           bg='#f5f5f5', fg='#333')
-        info_text.pack(fill=tk.BOTH, expand=True, pady=10)
-        info_text.insert('1.0',
-            "Optional: These files are used for VLOOKUP operations\n"
-            "- CAPEX AVAILMENT: For AVAILMENT TRACKER and DIV IN REPORT columns\n"
-            "- LOA CURRENT APPROVER: For PROPONENT and PROPONENT 1 columns\n"
-            "Without these files, those columns will be populated with default values"
-        )
-        info_text.config(state=tk.DISABLED)
         
         # Processing options
         options_frame = tk.LabelFrame(content, text="Processing Options", 
-                                     font=("Segoe UI", 11, "bold"), bg='#f0f0f0',
-                                     fg='#1e3c72', padx=15, pady=15)
+                                     font=("Segoe UI", 10, "bold"), bg='#f0f0f0',
+                                     fg='#29348F', padx=15, pady=15)
         options_frame.pack(fill=tk.X, pady=(0, 10))
         
         self.filter_mga_mia = tk.BooleanVar(value=True)
         tk.Checkbutton(options_frame, text="Filter for MGA/MIA PR numbers only",
-                      variable=self.filter_mga_mia, font=("Segoe UI", 9),
+                      variable=self.filter_mga_mia, font=("Segoe UI", 8),
                       bg='#f0f0f0', fg='#333').pack(anchor=tk.W, pady=3)
         
         self.filter_year_26 = tk.BooleanVar(value=True)
         tk.Checkbutton(options_frame, text="Filter out year 2026",
-                      variable=self.filter_year_26, font=("Segoe UI", 9),
+                      variable=self.filter_year_26, font=("Segoe UI", 8),
                       bg='#f0f0f0', fg='#333').pack(anchor=tk.W, pady=3)
         
         # Process button
         button_frame = tk.Frame(content, bg='#f0f0f0')
-        button_frame.pack(fill=tk.X, pady=10)
+        button_frame.pack(fill=tk.X, pady=15)
         
         process_btn = tk.Button(button_frame, text="Process WP LOA Report", 
                                command=self.process_wp_loa_threaded,
-                               font=("Segoe UI", 11, "bold"), 
-                               bg='#28a745', fg='white', padx=20, pady=10,
+                               font=("Segoe UI", 10, "bold"), 
+                               bg='#29348F', fg='white', padx=20, pady=10,
                                relief=tk.FLAT, cursor="hand2")
         process_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         clear_btn = tk.Button(button_frame, text="Clear All", 
                              command=self.clear_wp_loa_form,
-                             font=("Segoe UI", 10), 
-                             bg='#6c757d', fg='white', padx=15, pady=10,
+                             font=("Segoe UI", 9), 
+                             bg='#999', fg='white', padx=15, pady=10,
                              relief=tk.FLAT, cursor="hand2")
         clear_btn.pack(side=tk.LEFT)
     
