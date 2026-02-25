@@ -1,15 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('templates', 'templates')]
+datas = [('../templates', 'templates')]
 binaries = []
-hiddenimports = []
-tmp_ret = collect_all('flask')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('werkzeug')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('jinja2')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+hiddenimports = ['tkinter', 'requests', 'pandas', 'openpyxl']
+
+# Collect pandas and openpyxl dependencies only (needed for data processing)
 tmp_ret = collect_all('pandas')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('openpyxl')
@@ -17,8 +13,8 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['app.py'],
-    pathex=[],
+    ['../src/app_desktop.py'],
+    pathex=['..'],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
