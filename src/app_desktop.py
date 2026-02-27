@@ -55,7 +55,7 @@ class CAPEXReportingApp:
         title.pack(pady=(0, 2))
         
         subtitle = tk.Label(main_frame, 
-                           text=f"v{VERSION} •", 
+                           text=f"v{VERSION}", 
                            font=("Segoe UI", 9), bg='#f0f0f0', fg='#666')
         subtitle.pack(pady=(0, 15))
         
