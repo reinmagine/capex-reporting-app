@@ -1,211 +1,217 @@
-# Quick Reference - What Was Fixed
+# Quick Start - Auto-Update System
 
-## The Problem You Reported
+## ⚡ TL;DR
 
-> "the columns: PID (Mother and Sub) 1 YEAR 3 (K, L, M, N) should use the column (H) as a reference or delimit it or something"
->
-> "the L1 column that was generated in the processed file only reflected -- since the formula that i saw was: =L634&"-"&M634&"-"&N634"
->
-> "the data that are being reflected into these columns are N/A in the processed file: PROGRAM MBR DIV DEP FUNDING CFU SPONSOR PROJ SUBPROJ"
->
-> "AVAILMENT TRACKER column, it reflected #NAME? which is error/invalid?"
+Your CAPEX Reporting Tool now has automatic updates built-in. Here's what to do:
 
-## The Solution - 3 Main Fixes
+### For You (Developer)
 
-### Fix #1: Extract PID Components (K, L, M, N)
+**To Release a New Version (5 minutes):**
 
-**What was wrong:**
-- Columns K, L, M, N were empty
-- No way to automatically extract parts from H
-
-**What's fixed:**
-- K now extracts: `I` (from "I-BSRF-26-SA")
-- L now extracts: `BSRF`
-- M now extracts: `26`
-- N now extracts: `SA`
-
-**The Formulas:**
-```
-K: =LEFT(H2,FIND("-",H2)-1)
-L: =TRIM(MID(SUBSTITUTE(H2,"-",REPT(" ",100)),100,100))
-M: =TRIM(MID(SUBSTITUTE(H2,"-",REPT(" ",100)),200,100))
-N: =TRIM(MID(SUBSTITUTE(H2,"-",REPT(" ",100)),300,100))
-```
-
----
-
-### Fix #2: Create Proper L1 Formula (Column O)
-
-**What was wrong:**
-- Formula was: `=L634&"-"&M634&"-"&N634`
-- Columns L, M, N were empty → result was just "--"
-- Even with data, used wrong column references
-
-**What's fixed:**
-- Now formula: `=L2&"-"&M2&"-"&N2`
-- Works properly because K, L, M, N have extracted values
-- Result: `BSRF-26-SA` (parts 2-3-4 concatenated)
-
----
-
-### Fix #3: VLOOKUP Using Correct Lookup Key (Columns Q-U, Z-AA)
-
-**What was wrong:**
-```
-OLD (BROKEN):  =IFERROR(VLOOKUP(P2,BUDGET!$A:$AL,10,FALSE),"N/A")
-               └─ P2 = "I-BSRF-26-SA" (full PID)
-               └─ But BUDGET Column A has "BSRF-26-SA" (L1 only)
-               └─ NO MATCH → "N/A"
-```
-
-**What's fixed:**
-```
-NEW (WORKING): =IFERROR(VLOOKUP(O2,BUDGET!$A:$AL,10,FALSE),"N/A")
-               └─ O2 = "BSRF-26-SA" (extracted L1)
-               └─ BUDGET Column A has "BSRF-26-SA" (L1)
-               └─ MATCH FOUND → Returns actual value
-```
-
-**Applied to all VLOOKUP columns:**
-- Q (PROGRAM_MBR): Uses O to find from BUDGET column 10
-- R (DIV): Uses O to find from BUDGET column 7
-- S (DEP): Uses O to find from BUDGET column 6
-- T (FUNDING): Uses O to find from BUDGET column 13
-- U (CFU_SPONSOR): Uses O to find from BUDGET column 4
-- Z (PROJ): Uses O to find from BUDGET column 11
-- AA (SUBPROJ): Uses O to find from BUDGET column 12
-
----
-
-### Fix #4: External File Support (Column V, W)
-
-**What was wrong:**
-```
-#NAME? Error caused by:
-=IFNA(VLOOKUP(D1058,'C:\Users\paolagarcia-jalbuena\...\[file.xlsx]data_2026'!...))
-       └─ Hardcoded path to another user's computer
-       └─ Path doesn't exist on your system
-       └─ Excel can't resolve → #NAME? error
-```
-
-**What's fixed:**
-```
-NEW APPROACH:
-1. When external file provided, processor copies data into current workbook
-2. Creates internal sheets: AVAILMENT_DATA, LOA_APPROVER_DATA
-3. VLOOKUP now references these internal sheets:
-   
-V: =IFERROR(VLOOKUP(D2,AVAILMENT_DATA!$A:$Z,4,FALSE),"For Ariba PR Translation")
-W: =IFERROR(PROPER(VLOOKUP(A2,LOA_APPROVER_DATA!$A:$I,5,FALSE)),"N/A")
-
-✓ No hardcoded paths
-✓ Works on any computer
-✓ Works even if external file is deleted later
-```
-
----
-
-## How to Test
-
-### Quick 1-Minute Test
 ```bash
-cd c:\Users\ludrein.salvador_glo\Downloads\capex-reporting-app
-python test_formula_check.py
+# 1. Update version number
+# Edit: config/version.py
+# Change: VERSION = "1.0.2"  (increase from 1.0.1)
+
+# 2. Build executable
+pyinstaller CAPEX_Reporting_Tool.spec
+# Result: dist/CAPEX_Reporting_Tool.exe
+
+# 3. Create GitHub release
+# Go to: https://github.com/ludreinsalvador/capex-reporting-app/releases/new
+# Tag: v1.0.2
+# Upload: dist/CAPEX_Reporting_Tool.exe
+
+# 4. Update version.json
+# Edit: version.json
+# Change download_url to: https://github.com/.../download/v1.0.2/CAPEX_Reporting_Tool.exe
+git add version.json
+git commit -m "Update version.json for v1.0.2"
+git push origin main
+
+# Done! Users auto-update on next restart
 ```
 
-### Full Test with Your Data
+### For Your User
+
+**First Time:**
+1. Download `CAPEX_Reporting_Tool.exe`
+2. Double-click → App runs
+3. Done! ✓
+
+**Every Time After:**
+- App checks for updates in background automatically
+- If new version available, downloads silently
+- Installs on next restart
+- Zero user interaction
+
+---
+
+## 📁 Files Added
+
+| File | Purpose | Location |
+|------|---------|----------|
+| `version.py` | Version configuration | `config/` |
+| `auto_updater.py` | Update logic | `utils/` |
+| `version.json` | GitHub release metadata | Root |
+| `RELEASES.md` | Version history | Root |
+| `SETUP.md` | Deployment guide | Root |
+| `IMPLEMENTATION_SUMMARY.md` | What was done | Root |
+| `.gitignore` | Git ignore rules | Root |
+| `logs/.gitkeep` | Log directory | `logs/` |
+
+---
+
+## 🔍 Key Files to Know
+
+| File | Edit? | Purpose |
+|------|-------|---------|
+| `config/version.py` | ✅ YES | Update VERSION with each release |
+| `version.json` | ✅ YES | Update download_url after GitHub release |
+| `utils/auto_updater.py` | ❌ NO | Don't modify - it's the update engine |
+| `src/app_desktop.py` | ❌ NO | Already integrated |
+| `RELEASES.md` | ✅ YES | Document changes each release |
+
+---
+
+## 📋 Release Checklist
+
+### Before Release
+- [ ] Code tested and working
+- [ ] No syntax errors
+- [ ] Features documented
+
+### During Release
+- [ ] Update `config/version.py` with new version
+- [ ] Build exe: `pyinstaller CAPEX_Reporting_Tool.spec`
+- [ ] Create GitHub release with tag `v1.0.X`
+- [ ] Upload exe from `dist/`
+- [ ] Update `version.json` with new download URL
+- [ ] Commit and push
+
+### After Release
+- [ ] Test by downloading exe
+- [ ] Send update notification to user
+- [ ] Monitor `logs/update.log` for issues
+
+---
+
+## 🧪 Testing Auto-Update
+
 ```bash
-# Place your file in 'uploads' folder, then:
-python test_with_your_data.py
+# 1. Run app and check logs
+python src/app_desktop.py
+
+# 2. View update logs
+type logs/update.log
+
+# 3. Manual version check in Python
+python -c "from config.version import VERSION; print(f'Version: {VERSION}')"
 ```
 
 ---
 
-## Visual Before/After
+## 🐛 Troubleshooting
 
-### Before (Broken)
-```
-H: I-BSRF-26-SA
-K: [empty]
-L: [empty]
-M: [empty]
-N: [empty]
-O: =L&"-"&M&"-"&N  →  "--"  (because L, M, N are empty!)
-Q: =VLOOKUP(P,...)  →  "N/A"  (P="I-BSRF-26-SA", doesn't match BUDGET A)
-```
+| Issue | Solution |
+|-------|----------|
+| "Update check failed" | User offline - app continues, tries again next time |
+| "Can't write to file" | Run as admin, check file permissions |
+| "Excel file locked" | Close Excel first, then run app |
+| Want to see what's happening? | Check `logs/update.log` |
 
-### After (Fixed) ✅
+---
+
+## 📊 Version Numbers
+
 ```
-H: I-BSRF-26-SA
-K: =LEFT(H,...)  →  I          (auto-extracted!)
-L: =TRIM(MID(...))  →  BSRF    (auto-extracted!)
-M: =TRIM(MID(...))  →  26      (auto-extracted!)
-N: =TRIM(MID(...))  →  SA      (auto-extracted!)
-O: =L&"-"&M&"-"&N  →  BSRF-26-SA  (auto-calculated!)
-Q: =VLOOKUP(O,...)  →  Program Name  (O matches BUDGET A, found!)
+Format: MAJOR.MINOR.PATCH
+
+1.0.1  →  1.0.2  = Bug fix (patch)
+1.0.1  →  1.1.0  = New feature (minor)
+1.0.1  →  2.0.0  = Breaking change (major)
 ```
 
 ---
 
-## Testing Checklist
-
-After running the processor, open the output file and verify:
-
-- [ ] Row 1 has headers: "PID (Mother and Sub)", "1", "YEAR", "3", etc.
-- [ ] Column K shows extracted parts (like "I")
-- [ ] Column L shows extracted parts (like "BSRF")
-- [ ] Column M shows extracted parts (like "26")
-- [ ] Column N shows extracted parts (like "SA")
-- [ ] Column O shows concatenated L1 (like "BSRF-26-SA")
-- [ ] Columns Q-U show values (not "N/A" or "#NAME?")
-- [ ] Optional: Columns Z-AA show values
-- [ ] Click on cells O2, Q2, etc. → See formulas in formula bar (not values)
-
----
-
-## Files Modified
+## 🚀 Deployment Workflow
 
 ```
-processors/wp_loa_formula.py
-  ├─ create_formulas() method
-  │  ├─ Added K extraction formula
-  │  ├─ Added L extraction formula
-  │  ├─ Added M extraction formula
-  │  ├─ Added N extraction formula
-  │  ├─ Fixed O concatenation
-  │  └─ Fixed all VLOOKUP to reference O instead of P
-  │
-  └─ add_external_file_support() method
-     ├─ Now loads external files
-     ├─ Copies data into workbook sheets
-     └─ Creates formulas with internal references (no paths)
+CODE FIX → UPDATE VERSION → BUILD EXE → 
+CREATE RELEASE → UPDATE version.json → 
+PUSH TO GITHUB → ✓ DONE!
+
+Users auto-update automatically next time they open app
 ```
 
 ---
 
-## Questions?
+## 📞 Need Help?
 
-**Q: Why does O show "BSRF-26-SA" instead of "I-BSRF-26-SA"?**
-A: L1 WBS is just parts 2-3-4. Part 1 (I) is stored in K but not needed in L1.
-
-**Q: What if VLOOKUP still shows "N/A"?**
-A: The lookup key (O) doesn't match BUDGET Column A values. Check BUDGET sheet to see actual L1 WBS format.
-
-**Q: Do I need to put anything in columns K, L, M, N?**
-A: No! They're auto-filled by formulas from H. Keep them as formulas.
-
-**Q: How do I use external files?**
-A: Provide the file paths when calling the processor or through the GUI. It will copy data and create formulas automatically.
+1. **Setup questions:** See `SETUP.md`
+2. **Release history:** See `RELEASES.md`
+3. **What was implemented:** See `IMPLEMENTATION_SUMMARY.md`
+4. **Update logs:** Check `logs/update.log`
+5. **Code details:** See `utils/auto_updater.py`
 
 ---
 
-## Next Steps
+## ✅ What's Working
 
-1. ✅ Run `python test_with_your_data.py` with your actual file
-2. ✅ Verify formulas appear in columns K-AA
-3. ✅ Check that K, L, M, N extract correctly
-4. ✅ Check that Q-U show values (not N/A)
-5. ⏳ If VLOOKUP shows N/A: Check BUDGET sheet
-6. ⏳ Test with external files: Provide file paths
+- ✅ Version tracking
+- ✅ Auto-update checking
+- ✅ Silent background downloads
+- ✅ Graceful offline handling
+- ✅ Automatic installation
+- ✅ Full logging
+- ✅ GitHub integration
+- ✅ App window version display
 
-Let me know the results!
+---
+
+## 🎯 Current Status
+
+**Version:** 1.0.1  
+**Status:** Ready for production ✅  
+**User Experience:** Automatic updates, zero interaction  
+**Developer Effort:** 5 minutes per release
+
+---
+
+## 📝 Quick Command Reference
+
+```bash
+# Build exe
+pyinstaller CAPEX_Reporting_Tool.spec
+
+# Run app from Python
+python src/app_desktop.py
+
+# Check update logs
+type logs\update.log  # Windows
+cat logs/update.log   # Mac/Linux
+
+# View current version
+python -c "from config.version import VERSION; print(VERSION)"
+
+# Git commands for release
+git add config/version.py version.json
+git commit -m "Release v1.0.2"
+git push origin main
+```
+
+---
+
+## 📚 Documentation Location
+
+Moved to `docs/` folder for organization:
+- `docs/SETUP.md` - Detailed deployment guide
+- `docs/BUILD_CHECKLIST.md` - Release checklist
+- `docs/IMPLEMENTATION_SUMMARY.md` - What was implemented
+- `docs/RELEASES.md` - Release version history
+
+---
+
+**Version:** 1.0.1  
+**Last Updated:** 2026-02-24  
+**Ready to Deploy:** YES ✅

@@ -8,14 +8,14 @@ Cross-platform Excel processing application for Windows and macOS with automatic
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### For Windows Users
 1. **Download:** [CAPEX_Reporting_Tool.exe](https://github.com/ludreinsalvador/capex-reporting-app/releases/download/v1.0.1/CAPEX_Reporting_Tool.exe) (~54 MB)
 2. **Run:** Double-click exe
 3. **Done!** Updates check automatically
 
-👉 **Full Guide:** [docs/README_WINDOWS.md](docs/README_WINDOWS.md)
+**Full Guide:** [docs/README_WINDOWS.md](docs/README_WINDOWS.md)
 
 ### For macOS Users
 1. **Download:** [CAPEX_Reporting_Tool.app.zip](https://github.com/ludreinsalvador/capex-reporting-app/releases/download/v1.0.1/CAPEX_Reporting_Tool.app.zip) (~80 MB)
@@ -23,11 +23,11 @@ Cross-platform Excel processing application for Windows and macOS with automatic
 3. **Run:** Double-click app (handle security dialog)
 4. **Done!** Updates check automatically
 
-👉 **Full Guide:** [docs/README_MACOS.md](docs/README_MACOS.md)
+**Full Guide:** [docs/README_MACOS.md](docs/README_MACOS.md)
 
 ---
 
-## 📋 Features
+## Features
 
 - **Excel Processing:** Process multiple Excel file formats
   - WP LOA Report generation
@@ -53,7 +53,7 @@ Cross-platform Excel processing application for Windows and macOS with automatic
 
 ---
 
-## 📊 Technical Stack
+## Technical Stack
 
 | Component | Details |
 |-----------|---------|
@@ -66,7 +66,7 @@ Cross-platform Excel processing application for Windows and macOS with automatic
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 capex-reporting-app/
@@ -92,7 +92,7 @@ capex-reporting-app/
 
 ---
 
-## 📥 Installation Methods
+## Installation Methods
 
 ### Method 1: Direct Download (Recommended)
 
@@ -126,7 +126,7 @@ For building executables: See [docs/CROSS_PLATFORM_BUILD.md](docs/CROSS_PLATFORM
 
 ---
 
-## 🔄 How Automatic Updates Work
+## How Automatic Updates Work
 
 1. **On Launch:** App checks version on GitHub (immediate)
 2. **If Update Available:**
@@ -146,7 +146,7 @@ See [docs/CROSS_PLATFORM_BUILD.md](docs/CROSS_PLATFORM_BUILD.md) for developer d
 
 ---
 
-## 🛠️ For Developers
+## For Developers
 
 ### Build for Windows
 
@@ -186,7 +186,7 @@ zip -r CAPEX_Reporting_Tool.app.zip CAPEX_Reporting_Tool.app
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 ### "Windows Protected Your PC"
 
@@ -211,7 +211,7 @@ Check logs:
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
@@ -224,23 +224,23 @@ Check logs:
 
 ---
 
-## 🔐 Security & Privacy
+## Security & Privacy
 
 ### Data Processing
-- ✅ **All processing local:** No files uploaded anywhere
-- ✅ **No tracking:** Application doesn't track usage
-- ✅ **No analytics:** No telemetry sent
-- ✅ **Secure:** Excel files remain private on your computer
+- **All processing local:** No files uploaded anywhere
+- **No tracking:** Application doesn't track usage
+- **No analytics:** No telemetry sent
+- **Secure:** Excel files remain private on your computer
 
 ### Update Checking
-- ✅ **Version check only:** No personal data sent
-- ✅ **Network optional:** Works offline after download
-- ✅ **GitHub hosted:** Binaries from official releases
-- ✅ **Transparent:** You control when updates install
+- **Version check only:** No personal data sent
+- **Network optional:** Works offline after download
+- **GitHub hosted:** Binaries from official releases
+- **Transparent:** You control when updates install
 
 ---
 
-## 💬 Support
+## Support
 
 ### Common Questions
 
@@ -267,28 +267,16 @@ A: Works great! Just copy exe/app anywhere. Updates work the same.
 
 ---
 
-## 📄 License
+## Contact
 
-[Add your license information here]
-
----
-
-## 👥 Contributing
-
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) if available.
-
----
-
-## 📞 Contact
-
-- **Author:** [Your Name]
-- **Email:** [Your Email]
-- **GitHub:** https://github.com/ludreinsalvador/capex-reporting-app
+- **Author:** Ludrein Reimar Salvador
+- **Email:** ludreinreimar.salvador@gmail.com
+- **GitHub:** https://github.com/reinmagine/capex-reporting-app
 
 ---
 
 **Version:** 1.0.1  
-**Last Updated:** February 25, 2026  
+**Last Updated:** March 3, 2026  
 **Status:** Cross-platform stable release
 
-For latest release: https://github.com/ludreinsalvador/capex-reporting-app/releases/latest
+For latest release: https://github.com/reinmagine/capex-reporting-app/releases/latest
