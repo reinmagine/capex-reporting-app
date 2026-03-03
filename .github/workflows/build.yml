@@ -56,22 +56,20 @@ jobs:
         
       - name: Create Windows ZIP
         run: |
-          # Find the actual build output folder
-          $distItems = Get-ChildItem -Path "dist" -Directory
-          Write-Host "Found items in dist: $($distItems.Name)"
+          # Verify the full dist folder structure
+          Write-Host "Full dist folder contents:"
+          Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
           
-          foreach ($item in $distItems) {
-            if ($item.Name -match "CAPEX" -or $item.Name -match "capex") {
-              $source = $item.FullName
-              Write-Host "Using source: $source"
-              Compress-Archive -Path $source -DestinationPath "CAPEX_Reporting_Tool_Windows.zip" -Force
-              Write-Host "ZIP created successfully"
-              exit 0
-            }
+          # Compress the entire dist folder to preserve structure
+          if (Test-Path "dist/CAPEX_Reporting_Tool") {
+            Write-Host "Creating ZIP with full folder structure..."
+            Compress-Archive -Path "dist/CAPEX_Reporting_Tool" -DestinationPath "CAPEX_Reporting_Tool_Windows.zip" -Force
+            Write-Host "ZIP created successfully"
+            Get-Item "CAPEX_Reporting_Tool_Windows.zip" | Select-Object Length
+          } else {
+            Write-Host "ERROR: dist/CAPEX_Reporting_Tool folder not found"
+            exit 1
           }
-          
-          Write-Host "ERROR: Could not find CAPEX folder in dist"
-          exit 1
         shell: powershell
       
       - name: Upload Windows artifact
