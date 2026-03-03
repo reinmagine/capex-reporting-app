@@ -162,7 +162,7 @@ class RFPReclassProcessor(BaseProcessor):
         amount_col = self.columns.get('value_amount')
         
         if not all([currency_col, amount_col]):
-            raise ValueError("Required columns not found for formula processing")
+            raise ValueError(f"Required columns not found for formula processing. Found: {self.columns}")
         
         # Get column indices
         currency_idx = self._get_column_index(currency_col)
@@ -178,17 +178,40 @@ class RFPReclassProcessor(BaseProcessor):
         # Add header
         self.ws.cell(row=1, column=usd_col_idx).value = OUTPUT_COLUMNS['usd_amount']
         
-        # Add formula for currency conversion
+        # Add formula for currency conversion (case-insensitive using UPPER())
         php_rate = exchange_rates.get('PHP', 57)
         sgd_rate = exchange_rates.get('SGD', 1.34)
         
+        # Get Object column for checking subtotal rows
+        object_col = self.columns.get('object')
+        object_idx = None
+        if object_col:
+            try:
+                object_idx = self._get_column_index(object_col)
+            except ValueError:
+                pass  # Object column not found, write formulas for all rows
+        
         for row in range(2, self.ws.max_row + 1):
-            formula = (
-                f"=IF({currency_letter}{row}=\"PHP\",{amount_letter}{row}/{php_rate},"
-                f"IF({currency_letter}{row}=\"SGD\",{amount_letter}{row}/{sgd_rate},"
-                f"{amount_letter}{row}))"
-            )
-            self.ws.cell(row=row, column=usd_col_idx).value = formula
+            cell_obj = self.ws.cell(row=row, column=usd_col_idx)
+            
+            # Check if this is a subtotal row (where Object column is empty)
+            is_subtotal = False
+            if object_idx:
+                object_cell = self.ws.cell(row=row, column=object_idx)
+                if not object_cell.value or str(object_cell.value).strip() == '':
+                    # This is a subtotal row - clear the cell and skip
+                    cell_obj.value = None
+                    is_subtotal = True
+            
+            # Only write formula for data rows (not subtotal rows)
+            if not is_subtotal:
+                # Use UPPER() to make currency comparison case-insensitive
+                formula = (
+                    f"=IF(UPPER({currency_letter}{row})=\"PHP\",{amount_letter}{row}/{php_rate},"
+                    f"IF(UPPER({currency_letter}{row})=\"SGD\",{amount_letter}{row}/{sgd_rate},"
+                    f"{amount_letter}{row}))"
+                )
+                cell_obj.value = formula
         
         return self
     
