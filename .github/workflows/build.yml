@@ -21,7 +21,9 @@ jobs:
         run: pip install -r requirements.txt
       
       - name: Build Windows executable
-        run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec
+        run: |
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --verbose
+        shell: powershell
       
       - name: Debug - List dist folder contents
         run: |
@@ -71,7 +73,8 @@ jobs:
         run: pip3 install -r requirements.txt
       
       - name: Build macOS app
-        run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec
+        run: |
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --verbose
       
       - name: Debug - List dist folder
         run: ls -R dist
