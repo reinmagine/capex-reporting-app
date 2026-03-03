@@ -18,16 +18,19 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
+# For Windows: single file exe
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
-    exclude_binaries=True,
     name='CAPEX_Reporting_Tool',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
+    upx_exclude=[],
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -35,15 +38,17 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='CAPEX_Reporting_Tool',
-)
+
+# Optional: Keep COLLECT for OnDir builds (comment out if you only want OnFile)
+# coll = COLLECT(
+#     exe,
+#     a.binaries,
+#     a.datas,
+#     strip=False,
+#     upx=True,
+#     upx_exclude=[],
+#     name='CAPEX_Reporting_Tool',
+# )
 
 # For macOS, create an app bundle
 app = BUNDLE(
