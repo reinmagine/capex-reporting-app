@@ -56,15 +56,18 @@ jobs:
         
       - name: Create Windows ZIP
         run: |
-          # For single-file .exe, just zip the exe directly
-          if (Test-Path "dist/CAPEX_Reporting_Tool.exe") {
-            Write-Host "Creating ZIP with single .exe file..."
-            Compress-Archive -Path "dist/CAPEX_Reporting_Tool.exe" -DestinationPath "CAPEX_Reporting_Tool_Windows.zip" -Force
+          # Verify the full dist folder structure
+          Write-Host "Full dist folder contents:"
+          Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+          
+          # Compress the entire dist folder to preserve structure
+          if (Test-Path "dist/CAPEX_Reporting_Tool") {
+            Write-Host "Creating ZIP with full folder structure..."
+            Compress-Archive -Path "dist/CAPEX_Reporting_Tool" -DestinationPath "CAPEX_Reporting_Tool_Windows.zip" -Force
             Write-Host "ZIP created successfully"
             Get-Item "CAPEX_Reporting_Tool_Windows.zip" | Select-Object Length
           } else {
-            Write-Host "ERROR: CAPEX_Reporting_Tool.exe not found in dist"
-            Get-ChildItem -Path "dist" -Recurse
+            Write-Host "ERROR: dist/CAPEX_Reporting_Tool folder not found"
             exit 1
           }
         shell: powershell
