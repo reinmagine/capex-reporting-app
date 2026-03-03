@@ -133,7 +133,7 @@ class ZMMProcessor(BaseProcessor):
         # Get PR column
         pr_col = self.columns.get('ariba_pr_ref')
         if not pr_col:
-            raise ValueError("Ariba PR Reference column not found")
+            raise ValueError(f"Ariba PR Reference column not found. Available columns: {self.columns}")
         
         # Get column index
         pr_idx = self._get_column_index(pr_col)
@@ -148,9 +148,10 @@ class ZMMProcessor(BaseProcessor):
         self.ws.cell(row=1, column=delimit_col_idx).value = OUTPUT_COLUMNS['pr_ref_delimited']
         
         # Add formula to remove version numbers (v1, v2, etc.)
+        # Using LEFT + FIND approach instead of REGEX for broader Excel compatibility
         for row in range(2, self.ws.max_row + 1):
-            # Formula to remove v followed by numbers
-            formula = f"=REGEX({pr_letter}{row},\"(v[0-9]+)$\",\"\",\"g\")"
+            # Formula: If "v" exists, take everything before it; otherwise keep original value
+            formula = f"=IFERROR(LEFT({pr_letter}{row},FIND(\"v\",{pr_letter}{row})-1),{pr_letter}{row})"
             self.ws.cell(row=row, column=delimit_col_idx).value = formula
         
         # Column for PR as numeric
@@ -162,7 +163,7 @@ class ZMMProcessor(BaseProcessor):
         
         # Add formula to convert to numeric
         for row in range(2, self.ws.max_row + 1):
-            formula = f"=VALUE({delimit_col_letter}{row})"
+            formula = f"=IFERROR(VALUE({delimit_col_letter}{row}),{delimit_col_letter}{row})"
             self.ws.cell(row=row, column=numeric_col_idx).value = formula
         
         return self
