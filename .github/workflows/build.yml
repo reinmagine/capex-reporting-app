@@ -22,7 +22,7 @@ jobs:
       
       - name: Build Windows executable
         run: |
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --verbose
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
         shell: powershell
       
       - name: Debug - List dist folder contents
@@ -74,7 +74,7 @@ jobs:
       
       - name: Build macOS app
         run: |
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --verbose
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
       
       - name: Debug - List dist folder
         run: ls -R dist
