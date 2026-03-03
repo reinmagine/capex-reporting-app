@@ -32,25 +32,26 @@ jobs:
       - name: Build Windows executable
         run: |
           Write-Host "Starting PyInstaller build..."
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v 2>&1
-          Write-Host "PyInstaller completed with exit code: $LASTEXITCODE"
-          Write-Host "Checking for dist folder..."
-          if (Test-Path "dist") {
-            Write-Host "dist folder exists!"
-            Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
-          } else {
-            Write-Host "ERROR: dist folder was not created"
-            if (Test-Path "build") {
-              Write-Host "build folder exists, contents:"
-              Get-ChildItem -Path "build" -Recurse
-            }
-          }
+          Write-Host "Working directory: $(Get-Location)"
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
+          Write-Host "Build completed successfully"
         shell: powershell
       
-      - name: Debug - List dist folder contents
+      - name: Check build result
+        if: always()
         run: |
-          Write-Host "Contents of dist folder:"
-          Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+          Write-Host "Checking for dist folder..."
+          if (Test-Path "dist") {
+            Write-Host "SUCCESS: dist folder exists!"
+            Get-ChildItem -Path "dist" -Recurse
+          } else {
+            Write-Host "FAILED: dist folder does not exist"
+            if (Test-Path "build") {
+              Write-Host "build folder contents:"
+              Get-ChildItem -Path "build" -Recurse
+            }
+            exit 1
+          }
         shell: powershell
         
       - name: Create Windows ZIP
@@ -105,21 +106,25 @@ jobs:
       - name: Build macOS app
         run: |
           echo "Starting PyInstaller build..."
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v 2>&1 || true
+          echo "Working directory: $(pwd)"
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
+          echo "Build completed successfully"
+      
+      - name: Check build result
+        if: always()
+        run: |
           echo "Checking for dist folder..."
           if [ -d "dist" ]; then
-            echo "dist folder exists!"
+            echo "SUCCESS: dist folder exists!"
             ls -R dist
           else
-            echo "ERROR: dist folder was not created"
+            echo "FAILED: dist folder does not exist"
             if [ -d "build" ]; then
-              echo "build folder exists"
+              echo "build folder contents:"
               ls -R build
             fi
+            exit 1
           fi
-      
-      - name: Debug - List dist folder
-        run: ls -R dist
         
       - name: Create macOS DMG
         run: |
