@@ -1,0 +1,67 @@
+name: Build CAPEX Reporting Tool
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Build Windows executable
+        run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec
+      
+      - name: Create Windows ZIP
+        run: |
+          Compress-Archive -Path "dist\CAPEX_Reporting_Tool" `
+            -DestinationPath "CAPEX_Reporting_Tool_Windows.zip"
+        shell: powershell
+      
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows-Build
+          path: CAPEX_Reporting_Tool_Windows.zip
+          retention-days: 30
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip3 install -r requirements.txt
+      
+      - name: Build macOS app
+        run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --onedir
+      
+      - name: Create macOS DMG
+        run: |
+          hdiutil create -volname "CAPEX Reporting Tool" \
+            -srcfolder dist/CAPEX_Reporting_Tool.app \
+            -ov -format UDZO "CAPEX_Reporting_Tool_macOS.dmg"
+      
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: macOS-Build
+          path: CAPEX_Reporting_Tool_macOS.dmg
+          retention-days: 30
