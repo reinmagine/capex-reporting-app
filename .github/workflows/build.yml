@@ -20,9 +20,31 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       
+      - name: Verify files exist
+        run: |
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Files in current dir:"
+          Get-ChildItem -Path "." -Depth 1 | Select-Object Name
+          Write-Host "Checking spec file:"
+          Test-Path "build-scripts/CAPEX_Reporting_Tool.spec"
+        shell: powershell
+      
       - name: Build Windows executable
         run: |
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
+          Write-Host "Starting PyInstaller build..."
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v 2>&1
+          Write-Host "PyInstaller completed with exit code: $LASTEXITCODE"
+          Write-Host "Checking for dist folder..."
+          if (Test-Path "dist") {
+            Write-Host "dist folder exists!"
+            Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+          } else {
+            Write-Host "ERROR: dist folder was not created"
+            if (Test-Path "build") {
+              Write-Host "build folder exists, contents:"
+              Get-ChildItem -Path "build" -Recurse
+            }
+          }
         shell: powershell
       
       - name: Debug - List dist folder contents
@@ -72,9 +94,29 @@ jobs:
       - name: Install dependencies
         run: pip3 install -r requirements.txt
       
+      - name: Verify files exist
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Files in current dir:"
+          ls -la | head -20
+          echo "Checking spec file:"
+          test -f build-scripts/CAPEX_Reporting_Tool.spec && echo "Spec file exists" || echo "Spec file NOT found"
+      
       - name: Build macOS app
         run: |
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
+          echo "Starting PyInstaller build..."
+          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v 2>&1 || true
+          echo "Checking for dist folder..."
+          if [ -d "dist" ]; then
+            echo "dist folder exists!"
+            ls -R dist
+          else
+            echo "ERROR: dist folder was not created"
+            if [ -d "build" ]; then
+              echo "build folder exists"
+              ls -R build
+            fi
+          fi
       
       - name: Debug - List dist folder
         run: ls -R dist
