@@ -23,10 +23,20 @@ jobs:
       - name: Build Windows executable
         run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec
       
+      - name: Debug - List dist folder
+        run: ls -R dist
+        
       - name: Create Windows ZIP
         run: |
-          Compress-Archive -Path "dist\CAPEX_Reporting_Tool" `
-            -DestinationPath "CAPEX_Reporting_Tool_Windows.zip"
+          $source = "dist\CAPEX_Reporting_Tool"
+          $destination = "CAPEX_Reporting_Tool_Windows.zip"
+          if (Test-Path $source) {
+            Compress-Archive -Path $source -DestinationPath $destination -Force
+            Write-Host "ZIP created successfully"
+          } else {
+            Write-Host "ERROR: Source path does not exist: $source"
+            exit 1
+          }
         shell: powershell
       
       - name: Upload Windows artifact
@@ -53,11 +63,18 @@ jobs:
       - name: Build macOS app
         run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --onedir
       
+      - name: Debug - List dist folder
+        run: ls -R dist
+        
       - name: Create macOS DMG
         run: |
-          hdiutil create -volname "CAPEX Reporting Tool" \
-            -srcfolder dist/CAPEX_Reporting_Tool.app \
-            -ov -format UDZO "CAPEX_Reporting_Tool_macOS.dmg"
+          if [ -d "dist/CAPEX_Reporting_Tool.app" ]; then
+            hdiutil create -volname "CAPEX Reporting Tool" -srcfolder dist/CAPEX_Reporting_Tool.app -ov -format UDZO "CAPEX_Reporting_Tool_macOS.dmg"
+            echo "DMG created successfully"
+          else
+            echo "ERROR: App bundle not found at dist/CAPEX_Reporting_Tool.app"
+            exit 1
+          fi
       
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
