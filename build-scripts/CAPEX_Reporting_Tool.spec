@@ -44,3 +44,11 @@ coll = COLLECT(
     upx_exclude=[],
     name='CAPEX_Reporting_Tool',
 )
+
+# For macOS, create an app bundle
+app = BUNDLE(
+    coll,
+    name='CAPEX_Reporting_Tool.app',
+    icon=None,
+    bundle_identifier=None,
+)
