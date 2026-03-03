@@ -23,20 +23,30 @@ jobs:
       - name: Build Windows executable
         run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec
       
-      - name: Debug - List dist folder
-        run: ls -R dist
+      - name: Debug - List dist folder contents
+        run: |
+          Write-Host "Contents of dist folder:"
+          Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+        shell: powershell
         
       - name: Create Windows ZIP
         run: |
-          $source = "dist\CAPEX_Reporting_Tool"
-          $destination = "CAPEX_Reporting_Tool_Windows.zip"
-          if (Test-Path $source) {
-            Compress-Archive -Path $source -DestinationPath $destination -Force
-            Write-Host "ZIP created successfully"
-          } else {
-            Write-Host "ERROR: Source path does not exist: $source"
-            exit 1
+          # Find the actual build output folder
+          $distItems = Get-ChildItem -Path "dist" -Directory
+          Write-Host "Found items in dist: $($distItems.Name)"
+          
+          foreach ($item in $distItems) {
+            if ($item.Name -match "CAPEX" -or $item.Name -match "capex") {
+              $source = $item.FullName
+              Write-Host "Using source: $source"
+              Compress-Archive -Path $source -DestinationPath "CAPEX_Reporting_Tool_Windows.zip" -Force
+              Write-Host "ZIP created successfully"
+              exit 0
+            }
           }
+          
+          Write-Host "ERROR: Could not find CAPEX folder in dist"
+          exit 1
         shell: powershell
       
       - name: Upload Windows artifact
@@ -61,7 +71,7 @@ jobs:
         run: pip3 install -r requirements.txt
       
       - name: Build macOS app
-        run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec --onedir
+        run: pyinstaller build-scripts/CAPEX_Reporting_Tool.spec
       
       - name: Debug - List dist folder
         run: ls -R dist
