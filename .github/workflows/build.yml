@@ -33,8 +33,8 @@ jobs:
         run: |
           Write-Host "Starting PyInstaller build..."
           Write-Host "Working directory: $(Get-Location)"
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
-          Write-Host "Build completed successfully"
+          python -m PyInstaller build-scripts/CAPEX_Reporting_Tool.spec
+          Write-Host "Build completed"
         shell: powershell
       
       - name: Check build result
@@ -107,8 +107,8 @@ jobs:
         run: |
           echo "Starting PyInstaller build..."
           echo "Working directory: $(pwd)"
-          pyinstaller build-scripts/CAPEX_Reporting_Tool.spec -v
-          echo "Build completed successfully"
+          python -m PyInstaller build-scripts/CAPEX_Reporting_Tool.spec
+          echo "Build completed"
       
       - name: Check build result
         if: always()
