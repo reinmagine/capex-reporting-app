@@ -183,6 +183,7 @@ class CJIProcessor(BaseProcessor):
         ref_col = self.columns.get(ref_col_key)
         currency_col = self.columns.get('trans_currency')
         amount_col = self.columns.get('value_amount')
+        project_col = self.columns.get('project')
         
         if not all([ref_col, currency_col, amount_col]):
             raise ValueError(f"Required columns not found for formula processing. Found: {self.columns}")
@@ -191,6 +192,7 @@ class CJIProcessor(BaseProcessor):
         ref_idx = self._get_column_index(ref_col)
         currency_idx = self._get_column_index(currency_col)
         amount_idx = self._get_column_index(amount_col)
+        project_idx = self._get_column_index(project_col) if project_col else None
         
         ref_letter = get_column_letter(ref_idx)
         currency_letter = get_column_letter(currency_idx)
@@ -213,13 +215,14 @@ class CJIProcessor(BaseProcessor):
         for row in range(2, self.ws.max_row + 1):
             cell_obj = self.ws.cell(row=row, column=usd_col_idx)
             
-            # Check if this is a subtotal row (where reference/purch_doc column is empty)
+            # Check if this is a subtotal row (where project column is empty)
             is_subtotal = False
-            ref_cell = self.ws.cell(row=row, column=ref_idx)
-            if not ref_cell.value or str(ref_cell.value).strip() == '':
-                # This is a subtotal row - clear the cell and skip
-                cell_obj.value = None
-                is_subtotal = True
+            if project_idx:
+                project_cell = self.ws.cell(row=row, column=project_idx)
+                if not project_cell.value or str(project_cell.value).strip() == '':
+                    # This is a subtotal row - do NOT add formula
+                    cell_obj.value = None
+                    is_subtotal = True
             
             # Only write formula for data rows (not subtotal rows)
             if not is_subtotal:

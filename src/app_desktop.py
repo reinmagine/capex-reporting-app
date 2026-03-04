@@ -16,6 +16,7 @@ import os
 from datetime import datetime
 import threading
 import requests
+import openpyxl
 
 from processors.cji import CJIProcessor
 from processors.rfp_reclass import RFPReclassProcessor
@@ -232,7 +233,7 @@ class CAPEXReportingApp:
         merge_label.pack(anchor=tk.W, pady=(10, 5))
         
         self.merge_cji_btn = tk.Button(cons_frame, 
-                                      text="Merge CJI5 & CJI3 Data (Priority 3)", 
+                                      text="Merge CJI5 & CJI3 Data", 
                                       command=self.merge_cji_data,
                                       font=("Segoe UI", 9), bg='#6a1b9a', fg='white',
                                       padx=15, pady=7, relief=tk.FLAT, cursor="hand2")
@@ -331,8 +332,13 @@ class CAPEXReportingApp:
             )
             
             if save_path:
+                # Show loading during save
+                self.show_loading(f"Saving {output_name_base}...")
+                
                 # Save the workbook with formulas
                 processor.wb.save(save_path)
+                
+                self.hide_loading()
                 
                 file_size = os.path.getsize(save_path) / (1024 * 1024)
                 self.status_var.set(f"Success! File saved: {os.path.basename(save_path)}")
@@ -340,11 +346,10 @@ class CAPEXReportingApp:
                                   f"File processed successfully with FORMULAS!\n\n" +
                                   f"File: {os.path.basename(save_path)}\n" +
                                   f"Size: {file_size:.1f} MB\n" +
-                                  f"Rows: {row_count:,}\n\n" +
-                                  f"✓ All formulas retained - Excel will calculate on open\n" +
-                                  f"✓ Processing took only seconds!")
+                                  f"Rows: {row_count:,}\n\n")
             else:
                 self.status_var.set("Save cancelled")
+                self.hide_loading()
             
             self.process_btn.config(state=tk.NORMAL)
             
@@ -361,7 +366,7 @@ class CAPEXReportingApp:
         thread.start()
     
     def process_with_pivot(self, file_type):
-        """Process file with pivot table (STEP 6-7)"""
+        """Process file with pivot table (STEP 6-7) - WITH FORMULA PRESERVATION"""
         filename = filedialog.askopenfilename(
             title=f"Select {file_type.upper()} File",
             filetypes=[("Excel Files", "*.xlsx *.xls"), ("All Files", "*.*")]
@@ -372,42 +377,162 @@ class CAPEXReportingApp:
         
         try:
             self.show_loading(f"Processing {file_type.upper()} with pivot table...")
+
+            # Step 1: Load file ONCE for both formula processing and pivot calculation
+            original_df = pd.read_excel(filename)
             
+            # Step 2: Setup processor for formula creation
             processor = CJIProcessor(file_type)
-            processor.load_file(filename)
+            processor.df = original_df.copy()
+            processor.wb = openpyxl.load_workbook(filename)
+            processor.ws = processor.wb.active
             processor.validate_and_prepare()
-            df, pivot = processor.process_with_pivot(self.exchange_rates)
             
-            output_name = f'{file_type.upper()}_with_Pivot'
+            # Step 3: Get column mappings
+            ref_col_key = 'reference_doc' if file_type == 'cji5' else 'purch_doc'
+            ref_col = processor.columns.get(ref_col_key)
+            cat_col = processor.columns.get('reference_category') if file_type == 'cji5' else None
+            currency_col = processor.columns.get('trans_currency')
+            amount_col = processor.columns.get('value_amount')
+            project_col = processor.columns.get('project')
             
+            if not ref_col:
+                raise ValueError(f"Reference column not found for {file_type.upper()}")
+            
+            # Step 4: Add formulas to openpyxl workbook for Processed Data sheet
+            from openpyxl.utils import get_column_letter
+            php_rate = self.exchange_rates.get('PHP', 57)
+            sgd_rate = self.exchange_rates.get('SGD', 1.34)
+            
+            # Get column indices from openpyxl sheet
+            ref_idx = self._get_column_idx_from_sheet(processor.ws, processor.columns.get(ref_col_key))
+            currency_idx = self._get_column_idx_from_sheet(processor.ws, currency_col)
+            amount_idx = self._get_column_idx_from_sheet(processor.ws, amount_col)
+            project_idx = self._get_column_idx_from_sheet(processor.ws, project_col) if project_col else None
+            
+            # Add Amount_USD column header
+            usd_col_idx = processor.ws.max_column + 1
+            processor.ws.cell(row=1, column=usd_col_idx).value = 'Amount_USD'
+            
+            # Add formulas for each row
+            ref_letter = get_column_letter(ref_idx)
+            currency_letter = get_column_letter(currency_idx)
+            amount_letter = get_column_letter(amount_idx)
+            
+            for row in range(2, processor.ws.max_row + 1):
+                is_subtotal = False
+                if project_idx:
+                    project_cell = processor.ws.cell(row=row, column=project_idx)
+                    if not project_cell.value or str(project_cell.value).strip() == '':
+                        is_subtotal = True
+                
+                cell_obj = processor.ws.cell(row=row, column=usd_col_idx)
+                if not is_subtotal:
+                    formula = (
+                        f"=IF(UPPER({currency_letter}{row})=\"PHP\",{amount_letter}{row}/{php_rate},"
+                        f"IF(UPPER({currency_letter}{row})=\"SGD\",{amount_letter}{row}/{sgd_rate},"
+                        f"{amount_letter}{row}))"
+                    )
+                    cell_obj.value = formula
+            
+            # Step 5: Calculate Amount_USD for pivot (from original df)
+            def calc_usd(row):
+                if project_col and (pd.isna(row.get(project_col)) or str(row.get(project_col)).strip() == ''):
+                    return None
+                currency = str(row.get(currency_col, '')).upper()
+                amount = row.get(amount_col, 0)
+                if pd.isna(amount):
+                    return 0
+                if currency == 'PHP':
+                    return amount / php_rate
+                elif currency == 'SGD':
+                    return amount / sgd_rate
+                else:
+                    return amount
+            
+            original_df['Amount_USD'] = original_df.apply(calc_usd, axis=1)
+            df_for_pivot = original_df[original_df[ref_col].notna()].copy()
+            
+            # Step 6: Create pivot table
+            if file_type == 'cji5' and cat_col and cat_col in df_for_pivot.columns:
+                pivot = pd.pivot_table(
+                    df_for_pivot,
+                    values='Amount_USD',
+                    index=ref_col,
+                    columns=cat_col,
+                    aggfunc='sum',
+                    fill_value=0,
+                    margins=True
+                )
+            else:
+                pivot = pd.pivot_table(
+                    df_for_pivot,
+                    values='Amount_USD',
+                    index=ref_col,
+                    aggfunc='sum',
+                    fill_value=0,
+                    margins=True
+                )
+
             self.hide_loading()
-            
+
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             save_path = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
-                initialfile=f'{output_name}_{timestamp}.xlsx',
+                initialfile=f'{file_type.upper()}_with_Pivot_{timestamp}.xlsx',
                 filetypes=[("Excel Files", "*.xlsx")]
             )
-            
+
             if save_path:
-                self.show_loading("Saving file with pivot table...")
+                self.show_loading("Saving file with pivot table and formulas...")
+
+                # Step 7: Rename first sheet and add pivot
+                processor.wb.active.title = 'Processed Data'
                 
-                with pd.ExcelWriter(save_path, engine='openpyxl') as writer:
-                    df.to_excel(writer, sheet_name='Processed Data', index=False)
-                    pivot.to_excel(writer, sheet_name='Pivot Table')
+                # Add pivot table sheet
+                pivot_ws = processor.wb.create_sheet('Pivot Table')
+                pivot_df = pivot.reset_index()
                 
+                for c_idx, col in enumerate(pivot_df.columns, 1):
+                    pivot_ws.cell(row=1, column=c_idx).value = col
+                
+                for r_idx, row in enumerate(pivot_df.values, 2):
+                    for c_idx, value in enumerate(row, 1):
+                        pivot_ws.cell(row=r_idx, column=c_idx).value = value
+                
+                # Save once
+                processor.wb.save(save_path)
                 self.hide_loading()
-                
-                self.status_var.set(f"Success! Saved with pivot table")
-                messagebox.showinfo("Success", 
+
+                file_size = os.path.getsize(save_path) / (1024 * 1024)
+                self.status_var.set(f"Success! {file_type.upper()} with pivot saved")
+                messagebox.showinfo("Success",
                                   f"File processed with pivot table!\n\n" +
-                                  f"{os.path.basename(save_path)}\n" +
-                                  f"Sheets: Processed Data, Pivot Table")
-        
+                                  f"File: {os.path.basename(save_path)}\n" +
+                                  f"Size: {file_size:.1f} MB\n\n" +
+                                  f"Sheets:\n" +
+                                  f"  1. Processed Data (with formulas in Amount_USD)\n" +
+                                  f"  2. Pivot Table (calculated summary)")
+
         except Exception as e:
             self.hide_loading()
             self.status_var.set("Error occurred")
-            messagebox.showerror("Error", f"Error: {str(e)}")
+            import traceback
+            messagebox.showerror("Error", f"Error: {str(e)}\n\n{traceback.format_exc()}")
+    
+    def _get_column_idx_from_sheet(self, ws, col_name):
+        """Get column index from openpyxl sheet"""
+        for idx, cell in enumerate(ws[1], start=1):
+            if cell.value == col_name:
+                return idx
+        return None
+    
+    def _get_col_index(self, ws, col_name, columns):
+        """Get column index from column name"""
+        for idx, col in enumerate(columns, 1):
+            if col == col_name:
+                return idx
+        return None
     
     def filter_carplan(self):
         """Filter Car Plan data (STEP 1, 9-10)"""
@@ -443,7 +568,9 @@ class CAPEXReportingApp:
             )
             
             if save_path:
+                self.show_loading("Saving Car Plan data...")
                 carplan_df.to_excel(save_path, index=False, engine='openpyxl')
+                self.hide_loading()
                 messagebox.showinfo("Success", 
                                   f"Car Plan data extracted!\n\n" +
                                   f"Rows: {len(carplan_df):,}")
@@ -480,7 +607,9 @@ class CAPEXReportingApp:
             )
             
             if save_path:
+                self.show_loading("Saving CJI5 file without Car Plan...")
                 processor.save(save_path)
+                self.hide_loading()
                 messagebox.showinfo("Success", 
                                   f"CJI5 processed without car plan!\n\n" +
                                   f"Car plan entries removed: {removed_count:,}\n" +
@@ -521,7 +650,9 @@ class CAPEXReportingApp:
             )
             
             if save_path:
+                self.show_loading("Saving file without M-CBIP-25...")
                 processor.save(save_path)
+                self.hide_loading()
                 messagebox.showinfo("Success", 
                                   f"M-CBIP-25 removed!\n\n" +
                                   f"Removed: {removed:,} rows\n" +
@@ -576,7 +707,9 @@ class CAPEXReportingApp:
             )
             
             if save_path:
+                self.show_loading("Saving consolidated ZMM file...")
                 consolidated_df.to_excel(save_path, index=False, engine='openpyxl')
+                self.hide_loading()
                 messagebox.showinfo("Success", 
                                   f"ZMM files consolidated!\n\n" +
                                   f"Files merged: {len(filenames)}\n" +
@@ -587,15 +720,145 @@ class CAPEXReportingApp:
             messagebox.showerror("Error", f"Error: {str(e)}")
     
     def merge_cji_data(self):
-        """Merge CJI5 and CJI3 data (STEP 8)"""
-        messagebox.showinfo("Coming Soon", 
-                          "CJI Data Merge (STEP 8) is under development.\n\n" +
-                          "This will implement:\n" +
-                          "- Paste CJI5 pivot to CJI3\n" +
-                          "- Lookup duplicate Purchasing Doc\n" +
-                          "- Remove duplicates\n" +
-                          "- Merge into single table\n\n" +
-                          "Expected Priority 3")
+        """
+        Merge CJI5 & CJI3 Data with Lookup (STEP 8)
+        
+        STEP 8 Implementation:
+        1. Load both CJI5 and CJI3 pivot files
+        2. Lookup duplicate values from CJI3 (Purchasing Doc) to CJI5 (Ref. Doc number)
+        3. Remove duplicates if found
+        4. Merge into single table with PO number & PO Amount
+        """
+        try:
+            # Step 1: Select CJI5 Pivot File
+            cji5_file = filedialog.askopenfilename(
+                title="Select CJI5 Pivot File",
+                filetypes=[("Excel Files", "*.xlsx *.xls")]
+            )
+            if not cji5_file:
+                return
+            
+            # Step 2: Select CJI3 Pivot File
+            cji3_file = filedialog.askopenfilename(
+                title="Select CJI3 Pivot File",
+                filetypes=[("Excel Files", "*.xlsx *.xls")]
+            )
+            if not cji3_file:
+                return
+            
+            self.show_loading("Merging CJI5 & CJI3 data with lookup...")
+            
+            # Load both files
+            cji5_pivot = pd.read_excel(cji5_file)
+            cji3_pivot = pd.read_excel(cji3_file)
+            
+            # Rename columns for clarity
+            cji5_pivot.columns = ['REF_DOC_NUM'] + [f'CJI5_{col}' if col != 'REF_DOC_NUM' else col for col in cji5_pivot.columns[1:]]
+            cji3_pivot.columns = ['PURCH_DOC_NUM'] + [f'CJI3_{col}' if col != 'PURCH_DOC_NUM' else col for col in cji3_pivot.columns[1:]]
+            
+            # Step 3: Lookup for duplicates - Check if Purchasing Doc from CJI3 exists in CJI5 Ref Doc
+            # This creates a new column in CJI3 pivot showing if there's a match in CJI5
+            cji3_pivot['DUPLICATE_IN_CJI5'] = cji3_pivot['PURCH_DOC_NUM'].isin(cji5_pivot['REF_DOC_NUM']).apply(
+                lambda x: 'YES' if x else 'N/A'
+            )
+            
+            # Step 4: Separate duplicates from non-duplicates
+            duplicates = cji3_pivot[cji3_pivot['DUPLICATE_IN_CJI5'] == 'YES'].copy()
+            no_duplicates = cji3_pivot[cji3_pivot['DUPLICATE_IN_CJI5'] == 'N/A'].copy()
+            
+            # Step 5: For items without duplicates, merge CJI5 & CJI3
+            # Merge CJI5 and non-duplicate CJI3 data
+            merged_data = pd.concat([cji5_pivot, no_duplicates], axis=0, ignore_index=True)
+            
+            # Create output workbook
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_filename = f'CJI_Merged_{timestamp}.xlsx'
+            
+            self.hide_loading()
+            
+            save_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                initialfile=output_filename,
+                filetypes=[("Excel Files", "*.xlsx")]
+            )
+            
+            if save_path:
+                self.show_loading("Saving merged CJI data...")
+                
+                # Reset indices to ensure clean data
+                merged_data = merged_data.reset_index(drop=True)
+                duplicates = duplicates.reset_index(drop=True)
+                
+                # Use openpyxl directly to avoid sheet visibility issues
+                from openpyxl import Workbook
+                
+                wb = Workbook()
+                wb.remove(wb.active)  # Remove default sheet
+                
+                # Sheet 1: Merged data
+                ws1 = wb.create_sheet('Merged Data', 0)
+                ws1.sheet_state = 'visible'
+                
+                # Write headers
+                for c_idx, col in enumerate(merged_data.columns, 1):
+                    ws1.cell(row=1, column=c_idx).value = col
+                
+                # Write data rows
+                for r_idx, row_data in enumerate(merged_data.values, 2):
+                    for c_idx, value in enumerate(row_data, 1):
+                        ws1.cell(row=r_idx, column=c_idx).value = value
+                
+                # Sheet 2: Duplicates found (for review)
+                ws2 = wb.create_sheet('Duplicates', 1)
+                ws2.sheet_state = 'visible'
+                
+                # Write headers
+                for c_idx, col in enumerate(duplicates.columns, 1):
+                    ws2.cell(row=1, column=c_idx).value = col
+                
+                # Write data rows
+                for r_idx, row_data in enumerate(duplicates.values, 2):
+                    for c_idx, value in enumerate(row_data, 1):
+                        ws2.cell(row=r_idx, column=c_idx).value = value
+                
+                # Sheet 3: Summary
+                lookup_summary = pd.DataFrame({
+                    'Item': ['Total CJI5 Records', 'Total CJI3 Records', 'Duplicates Found', 'Merged Records'],
+                    'Count': [len(cji5_pivot), len(cji3_pivot), len(duplicates), len(merged_data)]
+                })
+                ws3 = wb.create_sheet('Summary', 2)
+                ws3.sheet_state = 'visible'
+                
+                # Write headers
+                for c_idx, col in enumerate(lookup_summary.columns, 1):
+                    ws3.cell(row=1, column=c_idx).value = col
+                
+                # Write data rows
+                for r_idx, row_data in enumerate(lookup_summary.values, 2):
+                    for c_idx, value in enumerate(row_data, 1):
+                        ws3.cell(row=r_idx, column=c_idx).value = value
+                
+                wb.save(save_path)
+                
+                self.hide_loading()
+                self.status_var.set(f"Success! Merged file saved")
+                messagebox.showinfo("Success", 
+                                  f"CJI Data Merge Completed!\n\n" +
+                                  f"Merge Summary:\n" +
+                                  f"  • CJI5 Records: {len(cji5_pivot):,}\n" +
+                                  f"  • CJI3 Records: {len(cji3_pivot):,}\n" +
+                                  f"  • Duplicates Found: {len(duplicates):,}\n" +
+                                  f"  • Final Merged Records: {len(merged_data):,}\n\n" +
+                                  f"Sheets created:\n" +
+                                  f"  1. Merged Data (CJI5 + CJI3 non-duplicates)\n" +
+                                  f"  2. Duplicates (for manual review)\n" +
+                                  f"  3. Summary (statistics)\n\n" +
+                                  f"Note: Review duplicates sheet. Remove one if needed.")
+        
+        except Exception as e:
+            self.hide_loading()
+            self.status_var.set("Error occurred")
+            messagebox.showerror("Error", f"Error merging CJI data:\n\n{str(e)}")
     
     def create_wp_loa_tab(self):
         """Create WP LOA Report processing tab"""
@@ -804,9 +1067,9 @@ class CAPEXReportingApp:
                     summary_text += "  • Q-U: PROGRAM_MBR, DIV, DEP, FUNDING, CFU_SPONSOR\n"
                     summary_text += "  • V-X: AVAILMENT_TRACKER, PROPONENT, PROPONENT_1\n"
                     summary_text += "  • Y-AA: DIV_IN_REPORT, PROJ, SUBPROJ\n\n"
-                    summary_text += "✓ All VLOOKUP formulas use IFERROR() for safe lookups\n"
-                    summary_text += "✓ Formulas are preserved in output file\n"
-                    summary_text += "✓ Edit columns L, M, N as needed - formulas auto-update"
+                    summary_text += "All VLOOKUP formulas use IFERROR() for safe lookups\n"
+                    summary_text += "Formulas are preserved in output file\n"
+                    summary_text += "Edit columns L, M, N as needed - formulas auto-update"
                     
                     messagebox.showinfo("Success", summary_text)
                     self.status_var.set(f"WP LOA processing complete - {summary['total_rows']} rows with formulas")

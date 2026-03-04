@@ -43,8 +43,10 @@ COLUMN_MAPPINGS = {
     'cji3': {
         'purch_doc': [
             'Purchasing Document',
+            'Purchasing Document Number',
             'Purchase Document',
-            'PO Number'
+            'PO Number',
+            'Document Number'
         ],
         'trans_currency': [
             'Transaction Currency',
