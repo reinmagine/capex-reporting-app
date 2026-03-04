@@ -168,11 +168,11 @@ class WPLOAFormulaProcessor:
             self.ws[f'P{row}'].value = f'=H{row}'  # L2: copy full PID
             
             # BUDGET lookups (range B:N, base lookup key is P)
-            self.ws[f'Q{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,9,0),\"N/A\")"
-            self.ws[f'R{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,6,0),\"N/A\")"
-            self.ws[f'S{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,5,0),\"N/A\")"
-            self.ws[f'T{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,12,0),\"N/A\")"
-            self.ws[f'U{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,3,0),\"N/A\")"
+            self.ws[f'Q{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'
+            self.ws[f'R{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,6,0),"N/A")'
+            self.ws[f'S{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,5,0),"N/A")'
+            self.ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,12,0),"N/A")'
+            self.ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,3,0),"N/A")'
             
             # AVAILMENT TRACKER: return D value if found, else fallback message
             # Uses detected or provided filename
@@ -207,11 +207,11 @@ class WPLOAFormulaProcessor:
             self.ws[f'Y{row}'].value = div_formula
             
             # PROGRAM IN REPORT: VLOOKUP to get Program name
-            self.ws[f'Z{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,9,0),\"N/A\")"
+            self.ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'
             
             # More BUDGET lookups (shifted to AA and AB)
-            self.ws[f'AA{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,10,0),\"N/A\")"
-            self.ws[f'AB{row}'].value = f"=IFERROR(VLOOKUP($P{row},'BUDGET'!$B:$N,11,0),\"N/A\")"
+            self.ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,10,0),"N/A")'
+            self.ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,11,0),"N/A")'
     
     def add_external_file_support(self, availment_file: Optional[str] = None,
                                   loa_approver_file: Optional[str] = None) -> None:
