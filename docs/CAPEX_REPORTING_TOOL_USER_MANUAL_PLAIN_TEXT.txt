@@ -1,0 +1,1089 @@
+================================================================================
+CAPEX REPORTING TOOL
+User Manual - Work In-Progress
+================================================================================
+
+Date Created: February 26, 2026
+Date Updated: March 4, 2026
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+1. OVERVIEW AND INTRODUCTION
+2. SYSTEM REQUIREMENTS
+3. INSTALLATION GUIDE - WINDOWS
+4. INSTALLATION GUIDE - MACOS
+5. FIRST-TIME SETUP
+6. APPLICATION INTERFACE OVERVIEW
+7. HOW TO USE EACH FEATURE
+8. TROUBLESHOOTING AND FAQ
+9. QUICK REFERENCE GUIDE
+
+================================================================================
+1. OVERVIEW AND INTRODUCTION
+================================================================================
+
+1.1 What is the CAPEX Reporting Tool?
+
+The CAPEX Reporting Tool is a desktop application designed to help users process and manage CAPEX data efficiently. The tool automatically converts and formats financial data into standardized Excel files with embedded formulas for easy calculation and modification.
+
+1.2 A Tool for
+
+- Teams managing CAPEX reporting
+- Personnel processing procurement and financial data
+- Anyone working with CJI, RFP, Reclass, ZMM, or WP LOA reports
+- Excel and financial data management teams
+
+1.3 Can help for
+
+- Data processing → Converts large files in seconds instead of minutes
+- Formula retention → Output files contain editable Excel formulas, not static values
+- Multiple file formats supported → Works with CJI5, CJI3, RFP, Reclass, ZMM, and WP LOA files
+- Cross-platform → Available for both Windows and macOS
+- Automatic updates → Receives new features and improvements automatically
+- Data validation → Checks files before processing to ensure compatibility
+
+1.4 Application Features
+
+The tool supports processing and conversion for six different file types:
+
+- WP LOA Report → Handles allocation and approval level data
+- CJI5 → Processes CJI5 financial reference documents
+- CJI3 → Processes CJI3 financial reference documents
+- RFP → Manages request for payment data
+- Reclass → Reclassifies financial entries between categories
+- ZMM → Handles procurement and PR (Purchase Requisition) reference data
+
+================================================================================
+2. SYSTEM REQUIREMENTS
+================================================================================
+
+Requirements                   Windows Users                   macOS Users
+--------                      ---------------                 -----------
+Operating System              Windows 10 or 11               macOS 10.14+
+Processor                     Intel or AMD                   Intel or Apple Silicon
+RAM                          4 GB minimum (8 GB rec.)       4 GB minimum (8 GB rec.)
+Storage Space                200 MB free                    200 MB free
+Internet Connection          Required for updates           Required for updates
+Excel Application            Excel 2016 or newer            Excel 2016 for Mac+
+
+Additional General Requirements:
+- Active internet connection for automatic updates
+- Excel, Numbers, or any spreadsheet application to work with output files
+
+================================================================================
+3. INSTALLATION GUIDE - WINDOWS
+================================================================================
+
+3.1 Step 1: Download the Application
+
+1. Click the download link: https://drive.google.com/drive/folders/1aLJgiEJ4oeukt7zj8FCgTjRBDrle1Pz2?usp=drive_link
+2. Click the Google Drive folder link (or paste in your browser)
+3. Look for file named "CAPEX_Reporting_Tool.exe" (approximately 50-60 MB)
+4. Right-click on the file and select "Download"
+5. The file begins downloading to your computer
+6. Wait for download to complete (approximately 1-3 minutes)
+7. The file will be in your Downloads folder by default
+
+Alternative if you have trouble downloading:
+- Click the three-dot menu next to the file
+- Select "Make a copy" or "Download"
+- Save to your computer
+
+3.2 Step 2: Install the Application
+
+1. Open your Downloads folder or the location where you saved the file
+2. Find "CAPEX_Reporting_Tool.exe"
+3. Double-click the file
+4. Windows may show a "User Account Control" dialog asking for permission - click "Yes"
+5. An installer window appears showing installation progress
+6. Wait until installation completes (approximately 30-60 seconds)
+7. Click "Finish" when the installation window closes
+8. A shortcut may be created on your desktop
+
+If prompted with "Windows protected your PC":
+- Click "More info"
+- Click "Run anyway" to proceed with installation
+
+3.3 Step 3: Run the Application
+
+Option 1: Desktop Shortcut
+- Double-click the "CAPEX Reporting Tool" shortcut on your desktop
+
+Option 2: Windows Start Menu
+- Click the Start button (Windows logo in lower left)
+- Type "CAPEX Reporting Tool"
+- Click the application name when it appears
+
+The application window opens and is ready to use.
+
+3.4 Step 4: Getting New Versions
+
+The application has automatic update functionality built-in:
+1. When you restart the app, it checks for new versions in the background
+2. If an update is available, it downloads automatically
+3. Next time you launch the app, you'll have the latest version
+4. NO MANUAL REINSTALL NEEDED - updates happen seamlessly
+
+If you want to manually check for updates:
+- Go to the same Google Drive folder
+- Download the new version file (CAPEX_Reporting_Tool.exe)
+- Run the new installer file (it automatically replaces the old version)
+
+================================================================================
+4. INSTALLATION GUIDE - MACOS
+================================================================================
+
+4.1 Step 1: Download the Application
+
+1. Click the download link: https://drive.google.com/drive/folders/1aLJgiEJ4oeukt7zj8FCgTjRBDrle1Pz2?usp=drive_link
+2. Click the Google Drive folder link (or paste in your browser)
+3. Look for file named "macOS-Build.zip" (approximately 70-80 MB)
+4. Right-click on the file and select "Download"
+   OR click the three-dot menu and select "Download"
+5. The file begins downloading to your computer
+6. Wait for download to complete (approximately 2-4 minutes)
+7. The file will be in your Downloads folder by default
+
+4.2 Step 2: Extract the Application
+
+Method 1: Automatic (Recommended)
+1. Open Finder (the blue face icon in the dock)
+2. Click "Downloads" in the sidebar
+3. Find "macOS-Build.zip" in the Downloads folder
+4. Double-click the file
+5. macOS automatically extracts the file
+6. You now have "CAPEX_Reporting_Tool.app" ready to use
+
+Method 2: Manual (Using Terminal)
+1. Open Terminal (Spotlight search: Cmd+Space, type "Terminal")
+2. Copy and paste this command, then press Enter:
+   cd ~/Downloads && unzip macOS-Build.zip
+
+4.3 Step 3: Run the Application (First Time)
+
+IMPORTANT: macOS requires security approval before running this application.
+
+1. Open Finder and go to Downloads folder
+2. Find "CAPEX_Reporting_Tool.app"
+3. RIGHT-CLICK (or Control+click) on the app icon
+4. Select "Open" from the context menu
+5. A security dialog appears with message:
+   "macOS cannot verify the developer" or 
+   "Apple could not verify this is free of malware"
+6. Click the "Open" button in this dialog
+7. THE APPLICATION WINDOW OPENS AND RUNS SUCCESSFULLY!
+
+WHY THIS WORKS: 
+macOS shows security warnings for apps downloaded from the internet that aren't 
+code-signed. Right-click → Open is the documented way to bypass this for trusted 
+applications.
+
+4.4 Step 4: Run the Application (Subsequent Times)
+
+After the first launch, you can open the application normally:
+
+Option 1: From Downloads
+- Open Finder
+- Navigate to Downloads folder
+- Double-click "CAPEX_Reporting_Tool.app"
+
+Option 2: Move to Applications (Recommended)
+- Open Finder and go to Downloads
+- Drag "CAPEX_Reporting_Tool.app" to the Applications folder
+- Now you can launch it directly from Applications:
+  - Open Applications folder
+  - Double-click "CAPEX_Reporting_Tool" to launch
+
+4.5 Troubleshooting: App Won't Open
+
+If the app doesn't launch after following the right-click method above:
+
+Solution 1: Use Terminal Command (Fastest)
+1. Open Terminal (Spotlight search: Cmd+Space, type "Terminal")
+2. Copy and paste this command:
+   sudo xattr -rd com.apple.quarantine /Applications/CAPEX_Reporting_Tool.app
+3. Press Enter and enter your Mac password when prompted
+4. Wait for completion (no error message = success)
+5. Close Terminal
+6. Double-click the app to open it normally
+
+Solution 2: System Settings
+1. Try to open the app (security dialog appears)
+2. Go to System Preferences/Settings > Privacy & Security
+3. Find CAPEX_Reporting_Tool in the list
+4. Click "Open Anyway"
+5. The app now opens
+
+What went wrong: The first launch requires completion of the Right-click → Open 
+process. If interrupted or closed before opening, try these solutions.
+
+4.6 Step 5: Getting New Versions
+
+The application has automatic update functionality built-in:
+1. The next time you launch the app, it checks for new versions automatically
+2. If an update is available, it downloads in the background
+3. Next app restart will use the latest version
+4. NO MANUAL ACTION NEEDED - updates happen seamlessly
+
+How to verify you have the latest version:
+- Look at the application window title
+- Shows version number (e.g., "CAPEX Reporting Tool v1.0.2")
+- Compare with GitHub releases to confirm you're current
+
+================================================================================
+5. FIRST-TIME SETUP
+================================================================================
+
+5.1 Application Settings
+
+When you first open the application, the default settings are already configured:
+- Currency Conversion Rates: PHP to USD (Rate: 57), SGD to USD (Rate: 1.34)
+- File validation: Enabled by default
+- Updates: Automatic checks on startup (silently downloads if available)
+
+5.2 Creating a Working Directory (Optional but Recommended)
+
+Create a folder on your computer where you will keep your Excel files:
+- Example folder names: "CAPEX Reports", "Financial Data", "Processing Files"
+- Keep both your original files and processed files in this location for easy access
+
+5.3 Setting Up File Organization
+
+Recommended folder structure:
+
+CAPEX Reports/
+├── Original Files/
+│   ├── CJI5 files
+│   ├── RFP files
+│   └── ZMM files
+├── Processed Files/
+│   ├── CJI5 Output
+│   ├── RFP Output
+│   └── ZMM Output
+└── Reference/
+    └── File templates
+
+5.4 Gathering Your Files
+
+Before using the application, prepare your Excel files:
+- Locate the Excel files you need to process
+- Check that files are in proper Excel format (.xlsx or .xls)
+- Ensure you have the necessary access permissions to read the files
+- Keep a backup copy of original files before processing
+
+================================================================================
+6. APPLICATION INTERFACE OVERVIEW
+================================================================================
+
+6.1 Main Window Layout
+
+When you open the application, you see the main window with several components:
+
+6.1.1 Top Section: Title Bar
+- Shows "CAPEX Reporting Tool v[version]" and current version number
+- Application name
+
+6.1.2 Upper-Left Panel: Feature Tabs
+
+Four tabs are available for different functions:
+- Basic Processing Tab → CJI5, CJI3, RFP, Reclass, and ZMM
+- Advanced Processing Tab → Pivot Table Generation and Filtering
+- Consolidation Tab → ZMM Consolidation, Data Merge & Lookup
+- WP LOA Report Processing Tab → WP LOA Report formatting
+
+6.1.3 Center Panel: Main Work Area
+- File selection section
+- Processing options
+- Status display
+- Process button
+
+6.1.4 Bottom Section: Status Bar
+- Shows current status or processing information
+- Displays file size and row count after processing
+
+6.2 Menu and Button Locations
+
+File Selection Button
+- Location: Top of main work area
+- Function: Click to browse and select your Excel file
+- Label: "Browse File"
+
+Process Button
+- Location: Below file selection area
+- Function: Starts processing the selected file
+- Color: Blue with white text
+- Label: "Process File"
+
+Options
+- Location: Varies by tab
+- Function: Allows customization for specific file types
+
+Status Display
+- Location: Bottom of window
+- Function: Shows current operation status and results
+
+================================================================================
+7. HOW TO USE EACH FEATURE
+================================================================================
+
+7.1 General Processing Steps (All File Types)
+
+Every file type follows the same basic workflow:
+1. Click on the appropriate tab
+2. Click the "Browse File" button to select your Excel file
+3. Review any available options for that file type
+4. Click the "Process File" button
+5. Select where to save the processed file
+6. Wait for processing to complete
+7. Processed file is ready to download
+
+7.2 Feature 1: WP LOA Report Processing
+
+7.2.1 What is WP LOA?
+Work Package Line of Approval (WP LOA) reports contain project and equipment 
+authorization data with approval levels.
+
+7.2.2 When to Use
+Use this feature when you have a WP LOA Excel file that needs formula-based 
+processing for VLOOKUP automation and data enrichment.
+
+7.2.3 Step-by-Step Instructions
+
+1. Open the CAPEX Reporting Tool application
+2. Click on the "WP LOA Report Processing" tab
+3. Click the "Browse File" button under "Step 1: Select WP LOA Report File"
+4. Browse to and select your WP LOA Excel file
+5. Click "Open"
+   - The file name appears in the application
+6. (Optional) Load external reference files:
+   - Click "Browse" next to "CAPEX AVAILMENT File" (if you have one)
+   - Click "Browse" next to "LOA Current Approver File" (if you have one)
+7. Review processing options if available
+8. Click the "Process WP LOA Report" button
+9. A save dialog opens
+10. Choose a location where you want to save the processed file
+11. Enter a name for the output file (or accept the default)
+12. Click "Save"
+13. Processing begins (status bar shows progress)
+14. Success message appears showing processed file name and row count
+
+7.2.4 Output Format
+
+- New Excel file with "WP_LOA_Processed" in the filename
+- Original data with added columns (K through AB) containing formulas
+- Formulas include:
+  - PID extraction and concatenation
+  - VLOOKUP formulas for BUDGET sheet references
+  - Division mapping formulas
+  - PROPONENT name formatting
+- All formulas allow for recalculation and modification in Excel
+- Estimated Time of Processing: 10-15 seconds
+
+7.2.5 Important Notes:
+
+- The tool auto-detects reference files (CAPEX AVAILMENT, LOA CURRENT APPROVER)
+- If files are in the same folder as WP LOA Report, they are found automatically
+- Make sure reference files have the BUDGET sheet in the WP LOA file
+- All VLOOKUP formulas use IFERROR() for safe lookups (returns "N/A" if no match)
+
+7.3 Feature 2: CJI5 Processing
+
+7.3.1 What is CJI5?
+CJI5 is a financial reference document containing transaction data with currency 
+information.
+
+7.3.2 When to Use
+Use this feature when you need to convert CJI5 data and apply currency conversion 
+formulas (PHP and SGD to USD).
+
+7.3.3 File Requirements
+
+Your CJI5 file must contain these columns:
+- Reference Document number
+- Transaction Currency (PHP, SGD, USD, or other)
+- Value/Amount field
+- Additional reference information
+
+7.3.4 Step-by-Step Instructions
+
+1. Open the CAPEX Reporting Tool application
+2. Click on the "CJI5" tab under "Basic Processing (STEP 4-5)"
+3. Click the "Browse File" button
+4. Select your CJI5 Excel file
+5. Click "Open"
+6. Verify the file is recognized (file name appears in the application)
+7. Click the "Process File" button
+8. In the save dialog:
+   - Choose where to save the file
+   - Enter a filename or use the default "CJI5_Processed_[date]_[time]"
+   - Click "Save"
+9. Processing starts (now very fast - usually 1-2 seconds)
+10. Success message appears showing:
+    - Output filename
+    - File size in MB
+    - Number of rows processed
+    - Confirmation that formulas are retained
+
+7.3.5 What the Processing Does
+
+- Validates all reference documents are in correct format
+- Adds new column: Amount_USD
+- Creates formula: Converts currency to USD using rates (PHP: 57, SGD: 1.34)
+- Formula allows users to modify amounts and recalculate automatically in Excel
+- Preserves all original data
+- No yellow subtotal rows receive formulas (blank cells)
+
+7.3.6 Currency Conversion Formula
+
+=IF(UPPER(Currency)="PHP", Amount/57, IF(UPPER(Currency)="SGD", Amount/1.34, Amount))
+
+This means:
+- If currency is PHP: divide amount by 57 to get USD
+- If currency is SGD: divide amount by 1.34 to get USD
+- If currency is USD or other: keep amount as is
+
+7.3.7 Output Format
+
+- File named: CJI5_Processed_[date]_[time].xlsx
+- Contains original data plus new USD Amount column
+- All formulas editable in Excel
+- Ready for further analysis or reporting
+- Estimated Time of Processing: 2-5 seconds
+
+7.3.8 Advanced: CJI5 with Pivot Table
+
+For summary data views:
+1. Click "Advanced (STEP 6-7, 12-14, 1)" tab
+2. Click "Process CJI5 with Pivot Table" button
+3. Select CJI5 file
+4. Choose save location
+5. Processing creates TWO sheets:
+   - Sheet 1: "Processed Data" - Original file with Amount_USD formulas
+   - Sheet 2: "Pivot Table" - Summary pivoted by Reference Document with calculated USD values
+
+7.4 Feature 3: CJI3 Processing
+
+7.4.1 What is CJI3?
+CJI3 is another financial reference document, similar to CJI5 but with different 
+column names or data structure.
+
+7.4.2 Differences from CJI5
+- CJI3 uses different column names (e.g., "Purchasing Document" vs "Reference Document")
+- Processing logic adapted for CJI3 format
+- Both use similar currency conversion and reference formatting
+- Output format and benefits are identical to CJI5
+
+7.4.3 When to Use
+Use this feature specifically for CJI3 formatted files. Do not use CJI5 processor 
+for CJI3 files, as column names may not match.
+
+7.4.4 Step-by-Step Instructions
+
+The process is identical to CJI5:
+1. Open CAPEX Reporting Tool
+2. Click "CJI3" tab (not CJI5!)
+3. Click "Browse File"
+4. Select your CJI3 Excel file
+5. Click "Open"
+6. Click "Process File"
+7. Choose save location and filename
+8. Click "Save"
+9. Processing completes in 1-2 seconds
+10. Success message displays results
+
+7.4.5 File Requirements for CJI3
+
+Your CJI3 file must contain these exact columns:
+- Purchase Document field (or "Purchasing Document Number")
+- Transaction Currency
+- Value/Amount field
+- Additional transaction data
+
+7.4.6 Output Format
+
+- File named: CJI3_Processed_[date]_[time].xlsx
+- Structure identical to CJI5 output
+- All formulas editable
+- Ready for use
+- Estimated Time of Processing: 1-3 seconds
+
+7.4.7 Advanced: CJI3 with Pivot Table
+
+For summary data views:
+1. Click "Advanced (STEP 6-7, 12-14, 1)" tab
+2. Click "Process CJI3 with Pivot Table" button
+3. Select CJI3 file
+4. Processing creates TWO sheets with formulas and pivot summary
+
+7.5 Feature 4: RFP Processing
+
+7.5.1 What is RFP?
+RFP (Request for Payment) files contain procurement and financial data for 
+proposal requests and approvals.
+
+7.5.2 When to Use
+Use this feature when you need to process RFP files and apply currency conversion.
+
+7.5.3 File Requirements
+
+Your RFP file must contain:
+- Proposal Reference number
+- Transaction Currency
+- Amount/Value field
+- Proposal details or descriptions
+
+7.5.4 Step-by-Step Instructions
+
+1. Open CAPEX Reporting Tool
+2. Click on the "RFP" tab
+3. Click "Browse File"
+4. Select your RFP Excel file
+5. Click "Open"
+6. Note: You may see an option "Remove M-CBIP-25 entries" (optional checkbox)
+   - If checked: removes entries marked as M-CBIP-25 category
+   - If unchecked: keeps all entries (default)
+   - Leave unchecked unless specifically instructed
+7. Click "Process File"
+8. Save dialog opens
+9. Choose save location
+10. Enter filename or use default "RFP_Processed_[date]_[time]"
+11. Click "Save"
+12. Processing completes (1-2 seconds)
+13. Success message appears with file information
+
+7.5.5 What the Processing Does
+
+- Validates RFP data structure
+- Adds USD Amount column with conversion formula
+- Optionally removes M-CBIP-25 entries if selected
+- Calculates total amount (all entries summed)
+- Total appears in processed file
+- All formulas editable
+
+7.5.6 The M-CBIP-25 Option
+
+CBIP entries are a specific category in RFP files:
+- By default, processor keeps all entries (checkbox unchecked)
+- Some workflows require removing CBIP entries
+- Only check this box if instructed by your manager
+
+7.5.7 Output Format
+
+- File named: RFP_Processed_[date]_[time].xlsx
+- Contains all RFP data with USD conversion formulas
+- Total amount row included at bottom
+- All amounts in USD (converted using same rates as CJI)
+- Ready for proposal review and approval
+- Estimated Time of Processing: 1-3 seconds
+
+7.6 Feature 5: Reclass Processing
+
+7.6.1 What is Reclass?
+Reclass files contain financial data that needs to be reclassified or reorganized 
+into different categories.
+
+7.6.2 When to Use
+Use this feature when financial entries need to be moved between categories or 
+reorganized.
+
+7.6.3 File Requirements
+
+Your Reclass file must contain:
+- Current Classification code
+- Financial Amount or Value
+- Target Classification (optional)
+- Description (optional)
+
+7.6.4 Step-by-Step Instructions
+
+1. Open CAPEX Reporting Tool
+2. Click on the "Reclass" tab
+3. Click "Browse File"
+4. Select your Reclass Excel file
+5. Click "Open"
+6. Review options if visible
+7. Click "Process File"
+8. Save dialog opens
+9. Choose location and enter filename
+10. Click "Save"
+11. Processing runs (1-2 seconds)
+12. Success message shows results
+
+7.6.5 What the Processing Does
+
+- Validates reclassification structure
+- Adds USD Amount column with currency conversion
+- Applies reclassification logic to entries
+- Creates audit trail of changes
+- Totals calculated for verification
+- All formulas included for future modifications
+
+7.6.6 Output Format
+
+- File named: Reclass_Processed_[date]_[time].xlsx
+- Shows original classification and new classification
+- All amounts converted to USD
+- Totals by category included
+- Ready for accounting/finance team review
+- Estimated Time of Processing: 1-3 seconds
+
+7.7 Feature 6: ZMM Processing
+
+7.7.1 What is ZMM?
+ZMM files handle procurement and Purchase Requisition (PR) reference data from 
+the materials management system.
+
+7.7.2 When to Use
+Use this feature when you need to clean up PR numbers and standardize reference data.
+
+7.7.3 File Requirements
+
+Your ZMM file must contain:
+- Ariba PR Reference number (main identifier)
+- PR contains version numbers (v1, v2, v3, etc.) that need to be removed
+- Additional purchase or vendor information
+
+7.7.4 Step-by-Step Instructions
+
+1. Open CAPEX Reporting Tool
+2. Click on the "ZMM" tab under "Basic Processing (STEP 4-5)"
+3. Click "Browse File"
+4. Select your ZMM Excel file
+5. Click "Open"
+6. File is validated automatically
+7. Click "Process File"
+8. Save dialog opens
+9. Choose save location and filename
+10. Click "Save"
+11. Processing completes (1-2 seconds)
+12. Success message displays results
+
+7.7.5 What the Processing Does
+
+- Extracts PR numbers from Ariba references
+- Removes version suffixes (v1, v2, v3, etc.) using formula
+- Example: "PRN123456v2" becomes "PRN123456"
+- Creates new column with cleaned PR number
+- Converts cleaned PR to numeric format for sorting/analysis
+- Creates duplicate column for reference
+- Copies PO (Purchase Order) number if available
+- Copies Vendor information if available
+- All processing uses formulas (editable)
+
+7.7.6 Output Structure
+
+The processed file includes these new columns:
+- PR Reference Delimited: PR number with version removed (text format)
+- PR Reference Numeric: PR number converted to number format
+- PR Reference Copy: Duplicate of cleaned PR
+- PO Copy: Duplicate of PO number (if exists)
+- Vendor Copy: Duplicate of vendor name (if exists)
+
+7.7.7 Example Data
+
+Original: "P-123456v3"
+After Processing:
+- Delimited: "P-123456"
+- Numeric: 123456 (can be sorted as number)
+
+7.7.8 Output Format
+
+- File named: ZMM_Processed_[date]_[time].xlsx
+- Contains all original data plus new columns
+- All new columns contain formulas
+- Ready for consolidation or analysis
+- PR numbers now standardized and sortable
+- Estimated Time of Processing: 2-5 seconds
+
+================================================================================
+8. TROUBLESHOOTING AND FAQ
+================================================================================
+
+8.1 Common Issues and Solutions
+
+8.1.1 Issue 1: File Selection Not Working
+
+Problem: Clicking the "Browse File" button does nothing, or the window closes 
+unexpectedly.
+
+Solutions:
+- Make sure you have file selection permission:
+  - Windows: Run as Administrator if prompted
+  - macOS: Check System Preferences > Security & Privacy
+- Try using a different folder:
+  - Don't select from restricted locations
+  - Save your file to Documents or a custom folder first
+- Restart the application:
+  - Close completely, wait 10 seconds, reopen
+
+8.1.2 Issue 2: File Validation Error
+
+Problem: After selecting the file, you get error message like "Invalid file 
+structure" or "Missing columns."
+
+Solutions:
+- Verify correct file type:
+  - Are you using CJI5 for a CJI3 file? (use correct tab)
+  - Check the file name for version information
+- Verify file format:
+  - File must be .xlsx or .xls (Excel format)
+  - Not .csv, .txt, or other formats
+- Check file contents:
+  - Open file in Excel first
+  - Verify all required columns exist
+  - Check column headers match expected names exactly
+  - Delete empty rows or columns at top
+- Save file properly:
+  - Open file in Excel
+  - Use File > Save As > Excel format (.xlsx)
+  - Close file, try processing again
+
+8.1.3 Issue 3: Processing Takes Very Long
+
+Problem: After clicking "Process File," the application appears to freeze or shows 
+loading screen for many minutes.
+
+Solutions:
+- Wait a bit longer:
+  - Formula-based processing is typically fast (1-2 seconds)
+  - Very large files (1M+ rows) may need longer
+- Restart if frozen more than 5 minutes:
+  - Force close the application
+  - Windows: Use Ctrl+Alt+Delete, select Task Manager
+  - macOS: Use Command+Q or Force Quit (Command+Option+Esc)
+- Reduce file size and try again:
+  - If file has millions of rows, split into smaller files
+
+8.1.4 Issue 4: Cannot Find Processed File
+
+Problem: Processing completes but cannot locate the saved file.
+
+Solutions:
+- Check save location:
+  - During save dialog, notice which folder is shown
+  - That's where your file was saved
+- Windows file search:
+  - Click Start menu, type filename or "CJI5_Processed"
+  - Files menu shows all matches
+- macOS file search:
+  - Click Spotlight (magnifying glass, upper right)
+  - Type filename, click on file in results
+- Default locations to check:
+  - Windows: C:\Users\[YourName]\Documents\
+  - macOS: /Users/[YourName]/Downloads
+
+8.1.5 Issue 5: Cannot Open Processed File in Excel
+
+Problem: Processed file opens but shows errors or formulas don't calculate.
+
+Solutions:
+- Enable formulas in Excel:
+  - Open file in Excel
+  - If dialog appears about formulas, click "Enable"
+  - Excel processes all formulas automatically
+- Check Excel version:
+  - File requires Excel 2016 or newer
+  - Try opening in newer Excel or LibreOffice/Google Sheets
+- File is corrupted:
+  - Delete the file, reprocess original file
+
+8.1.6 Issue 6: Wrong Data in Output
+
+Problem: Processed file contains incorrect data, wrong calculations, or missing entries.
+
+Solutions:
+- Verify input file is correct:
+  - Is this the right original file?
+  - Does the file contain the data you expected?
+  - Are column names spelled correctly?
+- Check for hidden rows/columns:
+  - Open original file in Excel
+  - Unhide any hidden rows (right-click row numbers, select Unhide)
+  - Unhide any hidden columns
+- Re-process the file:
+  - Verify file format is .xlsx, all required columns exist
+  - Process again
+
+8.1.7 Issue 7: Application Won't Open
+
+Problem: Double-clicking the application does nothing, or crashes immediately.
+
+Windows Solutions:
+- Restart your computer (may resolve temporary issues)
+- Reinstall the application:
+  - Uninstall: Programs > Programs and Features > Uninstall
+  - Redownload from Google Drive, install fresh
+- Run as Administrator:
+  - Right-click the application shortcut
+  - Select "Run as Administrator"
+
+macOS Solutions:
+- Right-click → Open method (First Time Only):
+  - Open Finder > Downloads
+  - Right-click CAPEX_Reporting_Tool.app
+  - Select "Open"
+  - Click "Open" in security dialog
+- Terminal command (if right-click didn't work):
+  sudo xattr -rd com.apple.quarantine /Applications/CAPEX_Reporting_Tool.app
+- Move app to Applications:
+  - Drag CAPEX_Reporting_Tool.app from Downloads to Applications folder
+  - Try running from Applications
+- Restart your Mac:
+  - Close all applications, restart computer, try opening app again
+
+8.1.8 Issue 8: Update Failed or Stuck on Old Version
+
+Problem: Application doesn't update to newest version, or update process seems stuck.
+
+Solutions:
+- Manual restart:
+  - Close the application completely
+  - Reopen it - should fetch latest version automatically
+- Clear update cache:
+  - Windows: Delete %AppData%\CAPEX folder if exists
+  - macOS: Delete ~/Library/Application Support/CAPEX folder if exists
+- Manual update:
+  - Download latest version from GitHub releases
+  - Run the installer (replaces old version)
+  - Restart the app
+
+8.1.9 Issue 9: Formulas Show as Text Instead of Calculating
+
+Problem: Processed file shows formulas as text (e.g., "=IF(A1..." visible) instead 
+of calculated values.
+
+Solutions:
+- Format column as number:
+  - Select the column
+  - Right-click > Format Cells
+  - Click "Number" tab
+  - Change format to "Number"
+- Recalculate formulas:
+  - Press Ctrl+Shift+F9 (Windows) or Cmd+Shift+F9 (macOS)
+- Check Excel settings:
+  - File > Options > Formulas
+  - Make sure "Show formulas" is NOT checked
+
+8.1.10 Issue 10: File Size Seems Too Large
+
+Problem: Processed file is much larger than expected, takes long to open.
+
+Explanation: This is normal and expected:
+- Original file: What you started with
+- Processed file: Original data + new formula columns
+- Formulas add size to file
+- Larger file = more comprehensive processing
+- Still opens quickly once formulas calculate
+
+Solution: File size is not a problem. This is normal operation.
+
+8.2 Frequently Asked Questions (FAQ)
+
+Q1: Why do I need to use this tool instead of opening files directly in Excel?
+
+A: The tool automatically:
+- Validates data structure before processing
+- Converts currency values to USD using correct rates
+- Adds calculated columns with embedded formulas
+- Ensures consistency across all files
+- Fast processing (seconds instead of minutes)
+- Maintains formula editing capability
+
+Q2: Can I edit the formulas in the processed file?
+
+A: Yes! The entire point is to preserve formulas so you can:
+- Edit amounts and watch calculations update automatically
+- Change currency conversion rates if needed
+- Copy formulas to other rows
+- Analyze different scenarios
+
+Q3: What if my exchange rates are different from default (PHP 57, SGD 1.34)?
+
+A: Currently, the default rates are hardcoded:
+- PHP to USD: 57
+- SGD to USD: 1.34
+
+You can manually edit the processed file's formulas in Excel to use different rates.
+
+Q4: Can I process multiple files at once?
+
+A: Not in batch mode. Process one file at a time:
+- Process first file, save result
+- Process next file, save result
+- Combine results manually if needed
+
+Q5: How long does processing take?
+
+A: Processing is very fast:
+- Small files (under 10,000 rows): 1-2 seconds
+- Medium files (10,000-50,000 rows): 2-5 seconds
+- Large files (50,000-100,000 rows): 5-15 seconds
+- Very large files (100,000+ rows): 15-30 seconds
+
+Q6: What file formats are supported?
+
+A: Input files must be:
+- .xlsx (Excel 2007 and newer) - RECOMMENDED
+- .xls (Excel 97-2003) - Older format
+
+Output files are always: .xlsx (Excel format)
+
+Q7: Do I need internet connection while processing files?
+
+A: No. Internet is only needed for:
+- Initial download and installation
+- Automatic update checks (happens silently in background)
+- After updates are checked, app works offline
+
+Q8: Is my data safe? Does the tool upload files anywhere?
+
+A: Yes, completely safe:
+- All processing happens on your local computer
+- Files never sent to internet or cloud
+- No data collection or tracking
+- Files remain on your computer
+
+Q9: Can I use the processed files directly in reports?
+
+A: Yes! Processed files are ready to use:
+- Open in Excel
+- Copy data to reports or documents
+- Formulas work in reports too
+- Can be emailed to others
+
+Q10: What if I accidentally close the app during processing?
+
+A: The output file may not be saved completely:
+- Reprocess the original file
+- No data loss to original file (only processed outputs affected)
+
+Q11: Does the app support Mac and Windows equally?
+
+A: Yes, as much as possible:
+- App works identically on both platforms
+- Processing speed same
+- File handling same
+- Only differences are installation and OS-specific features
+
+Q12: Can I move the application after installation?
+
+A: Windows: No, leave in Program Files
+   macOS: Yes, you can move the .app file to Applications folder
+
+Q13: What should I do with the original file after processing?
+
+A: Keep your original file:
+- Don't delete it
+- Keep as backup
+- Helps verify results
+- Can reprocess if needed
+
+Q14: How do I know if processing was successful?
+
+A: Success indicators:
+- No error messages appear
+- Success notification shows filename and row count
+- Processed file opens without errors
+- Formulas are visible in formula bar (top of Excel)
+
+Q15: Can I process the same file twice?
+
+A: Yes, but:
+- Creates separate output files each time (different timestamps)
+- Both contain correct data and formulas
+- Both can be used
+- Combine results only if needed
+
+================================================================================
+9. QUICK REFERENCE GUIDE
+================================================================================
+
+9.1 Default Exchange Rates
+
+- PHP to USD: 57 (divide PHP amount by 57 to get USD)
+- SGD to USD: 1.34 (divide SGD amount by 1.34 to get USD)
+
+9.2 File Organization Example
+
+Recommended folder structure:
+
+CAPEX Reports/
+├── February 2026/
+│   ├── Original Files/
+│   │   ├── CJI5_February.xlsx
+│   │   ├── RFP_February.xlsx
+│   │   └── ZMM_February.xlsx
+│   └── Processed Output/
+│       ├── CJI5_20260215_v1.xlsx
+│       ├── RFP_20260215_v1.xlsx
+│       └── ZMM_20260215_v1.xlsx
+├── January 2026/
+│   ├── Original Files/
+│   └── Processed Output/
+└── Archive/
+    ├── 2025 Files
+    └── 2024 Files
+
+9.3 Processing Workflow
+
+1. Open CAPEX Reporting Tool
+2. Select correct tab (CJI5, RFP, ZMM, WP LOA, etc.)
+3. Click "Browse File"
+4. Select your Excel file
+5. Review any options (e.g., Remove CBIP?)
+6. Click "Process File"
+7. Choose save location and filename
+8. Click "Save"
+9. Processing occurs (typically 1-15 seconds)
+10. Success message appears
+11. Processed file saved to your location
+12. Open in Excel to confirm formulas working
+13. Ready to use or share file
+
+9.4 Common File Locations
+
+Windows:
+- Downloads: C:\Users\[Your Name]\Downloads
+- Documents: C:\Users\[Your Name]\Documents
+- Desktop: C:\Users\[Your Name]\Desktop
+- Program Files: C:\Program Files\CAPEX Reporting Tool
+
+macOS:
+- Downloads: /Users/[Your Name]/Downloads
+- Documents: /Users/[Your Name]/Documents
+- Applications: /Applications/CAPEX_Reporting_Tool.app
+- Desktop: /Users/[Your Name]/Desktop
+
+9.5 What Column Names the App Looks For
+
+CJI5 Processor expects:
+- "Reference Document"
+- "Transaction Currency"
+- "Value/Amount" or similar
+
+CJI3 Processor expects:
+- "Purchase Document" or "Purchasing Document Number"
+- "Transaction Currency"
+- "Value/Amount" or similar
+
+RFP/Reclass Processor expects:
+- "Transaction Currency"
+- "Value/Amount"
+- "Description" or "Category"
+
+ZMM Processor expects:
+- "Ariba PR Reference"
+- "PO Number"
+- "Vendor"
+
+NOTE: Column names must match exactly (spelling and spacing matter)
+
+================================================================================
+END OF USER MANUAL
+================================================================================
+
+For questions or issues, contact your IT department or the application support team.
+
+Last Updated: March 4, 2026
