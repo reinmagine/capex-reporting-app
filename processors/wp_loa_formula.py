@@ -290,7 +290,7 @@ class WPLOAFormulaProcessor:
             if output_path is None:
                 base_path = Path(loa_current_approver_path)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                output_path = str(base_path.parent / f"WP_LOA_Processed_{timestamp}{base_path.suffix}")
+                output_path = str(base_path.parent / f"LOA_CURRENT_APPROVER_Processed_{timestamp}{base_path.suffix}")
             
             # Load LOA CURRENT APPROVER workbook
             loa_wb = openpyxl.load_workbook(loa_current_approver_path)
