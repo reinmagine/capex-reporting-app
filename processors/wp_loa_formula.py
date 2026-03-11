@@ -338,10 +338,8 @@ class WPLOAFormulaProcessor:
             
             # Add formulas for each data row (starting from row 3 since row 2 has headers now)
             for row in range(3, last_row + 2):
-                # Column L: PID (L1 WBS) - References source column (likely from original data)
-                # This should reference the column in the original LOA file that contains the PID
-                # For now, it references column B (adjust column letter if needed based on your file)
-                loa_ws[f'L{row}'].value = f'=B{row}'
+                # Column L: PID (L1 WBS) - User input field (leave empty for user to fill)
+                loa_ws[f'L{row}'].value = ''
                 
                 # Column M: Summary(Total Purchase Amount in USD) - user input
                 loa_ws[f'M{row}'].value = ''
