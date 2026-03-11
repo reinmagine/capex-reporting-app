@@ -22,7 +22,7 @@ class WPLOAFormulaProcessor:
     
     # Column headers for K-AB
     NEW_COLUMN_HEADERS = [
-        'PID (Mother and Sub)', '1', 'YEAR', '4', 'L1', 'L2',
+        'PID (Mother and Sub)', '1', 'YEAR', '3', 'L1', 'L2',
         'PROGRAM MBR', 'DIV', 'DEP', 'FUNDING', 'CFU SPONSOR',
         'AVAILMENT TRACKER', 'PROPONENT', 'PROPONENT 1', 'DIV IN REPORT', 'PROGRAM IN REPORT',
         'PROJ', 'SUBPROJ'
@@ -132,7 +132,7 @@ class WPLOAFormulaProcessor:
             'PID (Mother and Sub)',  # K - Column 11
             '1',                      # L - Column 12
             'YEAR',                  # M - Column 13
-            '4',                      # N - Column 14
+            '3',                      # N - Column 14
             'L1',                      # O - Column 15
             'L2',                      # P - Column 16
             'PROGRAM MBR',           # Q - Column 17
@@ -250,6 +250,130 @@ class WPLOAFormulaProcessor:
             print(f"Error in processing: {str(e)}")
             return False
     
+    def process_loa_current_approver(self, loa_current_approver_path: str, 
+                                     budget_file_path: Optional[str] = None) -> bool:
+        """
+        Process LOA CURRENT APPROVER file and add formula columns + Network Classification + Current Approver 1
+        
+        This method:
+        1. Loads LOA CURRENT APPROVER file (existing columns A-K)
+        2. Adds WP LOA formula columns (L-AB): PID, 1, 2, 3, L1, L2, PROGRAM MBR, DIV, DEP, FUNDING, etc.
+        3. Inserts Network Classif column (X) from BUDGET sheet
+        4. Adds Current Approver 1 column (AD) with formatted name
+        
+        Final structure:
+        A-K: Original LOA CURRENT APPROVER data
+        L-AB: Formula columns from WP LOA
+        X: Network Classif (inserted between FUNDING and PROPONENT)
+        AD: Current Approver 1 (formatted name)
+        
+        Args:
+            loa_current_approver_path: Path to LOA CURRENT APPROVER file
+            budget_file_path: Path to BUDGET file with Network Classification data
+        """
+        try:
+            from openpyxl.utils import get_column_letter
+            
+            # Load LOA CURRENT APPROVER workbook
+            loa_wb = openpyxl.load_workbook(loa_current_approver_path)
+            loa_ws = loa_wb.active
+            
+            # Load LOA CURRENT APPROVER data
+            loa_df = pd.read_excel(loa_current_approver_path)
+            
+            # Identify column positions in LOA file
+            # Expected: A=LOA#, B=Subject, C=Total Amount, D=STATUS, E=Current Approver, F-K=other data
+            
+            last_row = loa_ws.max_row
+            
+            # Add formula columns starting at column L (column 12)
+            # K→L (12), L→M (13), M→N (14), etc.
+            
+            # Column headers for the new columns (L onwards)
+            new_headers = [
+                'PID (Mother and Sub)',  # L (12)
+                '1', 'YEAR', '3', 'L1', 'L2',  # M-Q (13-17)
+                'PROGRAM MBR', 'DIV', 'DEP', 'FUNDING'  # R-W (18-23)
+            ]
+            
+            # Write headers starting at column L
+            for col_idx, header in enumerate(new_headers, start=12):
+                loa_ws.cell(row=1, column=col_idx).value = header
+            
+            # Add "Network Classif" header at column X (24)
+            loa_ws.cell(row=1, column=24).value = 'Network Classif'
+            
+            # Add PROPONENT and remaining headers
+            remaining_headers = [
+                'PROPONENT',  # Y (25)
+                'DIV IN REPORT',  # Z (26)
+                'PROGRAM IN REPORT',  # AA (27)
+                'PROJ',  # AB (28)
+                'SUBPROJ'  # AC (29)
+            ]
+            
+            for col_idx, header in enumerate(remaining_headers, start=25):
+                loa_ws.cell(row=1, column=col_idx).value = header
+            
+            # Add "Current Approver 1" header at column AD (30)
+            loa_ws.cell(row=1, column=30).value = 'Current Approver 1'
+            
+            # Add formulas for each data row
+            for row in range(2, last_row + 1):
+                # Column L: PID (Mother and Sub) - empty for now (will reference if available)
+                loa_ws[f'L{row}'].value = ''
+                
+                # Columns M-W: Extract and formula columns
+                # M: '1' (user input)
+                loa_ws[f'M{row}'].value = ''
+                
+                # N: YEAR (user input)
+                loa_ws[f'N{row}'].value = ''
+                
+                # O: '3' (user input)
+                loa_ws[f'O{row}'].value = ''
+                
+                # P: L1 (user input)
+                loa_ws[f'P{row}'].value = ''
+                
+                # Q: L2 (user input)
+                loa_ws[f'Q{row}'].value = ''
+                
+                # R-W: VLOOKUP formulas referencing BUDGET sheet
+                # Assuming budget lookup using PID (column L) as key
+                loa_ws[f'R{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM MBR
+                loa_ws[f'S{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV
+                loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,5,0),"N/A")'  # DEP
+                loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,12,0),"N/A")'  # FUNDING
+                
+                # Column X: Network Classif from BUDGET column C using LOA# (column A) as lookup key
+                # Lookup in BUDGET sheet using column A (LOA#)
+                loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},BUDGET!$A:$C,3,0),"N/A")'
+                
+                # Columns Y-AC: Remaining formula columns
+                loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'  # PROPONENT
+                loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV IN REPORT
+                loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM IN REPORT
+                loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,10,0),"N/A")'  # PROJ
+                loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,11,0),"N/A")'  # SUBPROJ
+                
+                # Column AD: Current Approver 1 - Format name from column E
+                # Convert "LAST NAME, First Name" to "First Name Last Name"
+                format_name_formula = (
+                    f"=IF(ISERROR(FIND(\",\",E{row})),"
+                    f"E{row},"
+                    f"PROPER(TRIM(MID(E{row},FIND(\",\",E{row})+2,LEN(E{row}))&\" \"&LEFT(E{row},FIND(\",\",E{row})-1))))"
+                )
+                loa_ws[f'AD{row}'].value = format_name_formula
+            
+            # Save the workbook
+            loa_wb.save(loa_current_approver_path)
+            return True
+            
+        except Exception as e:
+            print(f"Error processing LOA CURRENT APPROVER: {str(e)}")
+            return False
+    
     def get_summary(self) -> Dict:
         """Get processing summary."""
         return {
@@ -258,7 +382,7 @@ class WPLOAFormulaProcessor:
             'output_type': 'Excel Formulas',
             'column_range': 'K:AB',
             'columns_created': [
-                'PID (Mother and Sub)', '1', 'YEAR', '4', 'L1', 'L2',
+                'PID (Mother and Sub)', '1', 'YEAR', '3', 'L1', 'L2',
                 'PROGRAM_MBR', 'DIV', 'DEP', 'FUNDING', 'CFU_SPONSOR',
                 'AVAILMENT_TRACKER', 'PROPONENT', 'PROPONENT_1',
                 'DIV_IN_REPORT', 'PROGRAM_IN_REPORT', 'PROJ', 'SUBPROJ'
