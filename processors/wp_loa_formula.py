@@ -292,6 +292,7 @@ class WPLOAFormulaProcessor:
             last_row = loa_ws.max_row
             
             # Add formula columns starting at column L (column 12)
+            # Headers will be in row 2 (row 1 is blank/skipped)
             # Column headers for the new columns (L onwards)
             new_headers = [
                 'PID (Mother and Sub)',  # L (12)
@@ -299,12 +300,12 @@ class WPLOAFormulaProcessor:
                 'PROGRAM MBR', 'DIV', 'DEP', 'FUNDING'  # R-W (18-23)
             ]
             
-            # Write headers starting at column L
+            # Write headers at row 2 (not row 1)
             for col_idx, header in enumerate(new_headers, start=12):
-                loa_ws.cell(row=1, column=col_idx).value = header
+                loa_ws.cell(row=2, column=col_idx).value = header
             
             # Add "Network Classif" header at column X (24)
-            loa_ws.cell(row=1, column=24).value = 'Network Classif'
+            loa_ws.cell(row=2, column=24).value = 'Network Classif'
             
             # Add PROPONENT and remaining headers
             remaining_headers = [
@@ -316,13 +317,13 @@ class WPLOAFormulaProcessor:
             ]
             
             for col_idx, header in enumerate(remaining_headers, start=25):
-                loa_ws.cell(row=1, column=col_idx).value = header
+                loa_ws.cell(row=2, column=col_idx).value = header
             
             # Add "Current Approver 1" header at column AD (30)
-            loa_ws.cell(row=1, column=30).value = 'Current Approver 1'
+            loa_ws.cell(row=2, column=30).value = 'Current Approver 1'
             
-            # Add formulas for each data row
-            for row in range(2, last_row + 1):
+            # Add formulas for each data row (starting from row 3 since row 2 has headers now)
+            for row in range(3, last_row + 2):
                 # Column L: PID (Mother and Sub) - empty for now (will reference if available)
                 loa_ws[f'L{row}'].value = ''
                 
