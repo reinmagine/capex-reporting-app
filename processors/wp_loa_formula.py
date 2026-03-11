@@ -398,8 +398,8 @@ class WPLOAFormulaProcessor:
                 loa_ws[f'X{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,X$1,0)'
                 
                 # Column Y: PROPONENT - Format column I (Reported By) to proper case (First Name Last Name)
-                # Convert "LAST NAME, First Name" to "First Name Last Name"
-                loa_ws[f'Y{row}'].value = f'=TRIM(MID(I{row},FIND(",",I{row})+2,LEN(I{row})))&" "&LEFT(I{row},FIND(",",I{row})-1)'
+                # Convert "LAST NAME, First Name" to "First Name Last Name" OR just apply PROPER if no comma
+                loa_ws[f'Y{row}'].value = f'=IFERROR(TRIM(MID(I{row},FIND(",",I{row})+2,LEN(I{row})))&" "&LEFT(I{row},FIND(",",I{row})-1),PROPER(I{row}))'
                 
                 # Column Z: DIV IN REPORT - IF formula mapping DIV values
                 loa_ws[f'Z{row}'].value = f'=IF(U{row}="B&D","B&D",IF(U{row}="CIPE","CIPE/Ting",IF(U{row}="NAI","NAI/Raymond",IF(U{row}="ND","ND/Dennis",IF(U{row}="NOA","NOA/Cris",IF(U{row}="Non-NTG","NTG Pool",IF(U{row}="NTG","NTG / Manpower",IF(U{row}="SPE","SPE/Joel",IF(U{row}="SPP","SPP/Helen",IF(U{row}="SS","SS/Marge",""))))))))))'
