@@ -969,18 +969,53 @@ class CAPEXReportingApp:
                                           fg='#29348F', padx=15, pady=15)
         loa_approver_frame.pack(fill=tk.X, pady=(10, 10))
         
+        # Row 1: LOA CURRENT APPROVER file selection
+        loa_row1 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
+        loa_row1.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(loa_row1, text="LOA File:", font=("Segoe UI", 8, "bold"), 
+                bg='#f0f0f0', fg='#333').pack(side=tk.LEFT, padx=(0, 5))
+        
         self.loa_approver_file_path_input = tk.StringVar(value="No file selected")
-        loa_approver_label = tk.Label(loa_approver_frame, textvariable=self.loa_approver_file_path_input,
+        loa_approver_label = tk.Label(loa_row1, textvariable=self.loa_approver_file_path_input,
                                       font=("Segoe UI", 8), bg='#f0f0f0', fg='#555')
         loa_approver_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
         
-        browse_approver_btn = tk.Button(loa_approver_frame, text="Browse LOA Approver File", 
+        browse_approver_btn = tk.Button(loa_row1, text="Browse", 
                                        command=self.browse_loa_approver_file_for_processing,
                                        font=("Segoe UI", 8), bg='#29348F', fg='white',
-                                       padx=15, relief=tk.FLAT, cursor="hand2")
-        browse_approver_btn.pack(side=tk.LEFT, padx=(0, 10))
+                                       padx=12, relief=tk.FLAT, cursor="hand2")
+        browse_approver_btn.pack(side=tk.LEFT)
         
-        process_approver_btn = tk.Button(loa_approver_frame, text="Process LOA Approver", 
+        # Row 2: Reference WP LOA Report file selection
+        loa_row2 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
+        loa_row2.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(loa_row2, text="Reference WP LOA Report File:", font=("Segoe UI", 8, "bold"), 
+                bg='#f0f0f0', fg='#333').pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.loa_reference_file_path_input = tk.StringVar(value="Optional - for data enrichment")
+        loa_reference_label = tk.Label(loa_row2, textvariable=self.loa_reference_file_path_input,
+                                       font=("Segoe UI", 8), bg='#f0f0f0', fg='#999')
+        loa_reference_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
+        
+        browse_reference_btn = tk.Button(loa_row2, text="Browse", 
+                                        command=self.browse_loa_reference_file,
+                                        font=("Segoe UI", 8), bg='#29348F', fg='white',
+                                        padx=12, relief=tk.FLAT, cursor="hand2")
+        browse_reference_btn.pack(side=tk.LEFT, padx=(0, 5))
+        
+        clear_reference_btn = tk.Button(loa_row2, text="Clear", 
+                                       command=lambda: self.loa_reference_file_path_input.set("Optional - for data enrichment"),
+                                       font=("Segoe UI", 8), bg='#999', fg='white',
+                                       padx=12, relief=tk.FLAT, cursor="hand2")
+        clear_reference_btn.pack(side=tk.LEFT)
+        
+        # Row 3: Process button
+        loa_row3 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
+        loa_row3.pack(fill=tk.X)
+        
+        process_approver_btn = tk.Button(loa_row3, text="Process LOA Approver", 
                                         command=self.process_loa_current_approver_threaded,
                                         font=("Segoe UI", 8, "bold"), 
                                         bg='#6a1b9a', fg='white', padx=15,
@@ -1034,12 +1069,23 @@ class CAPEXReportingApp:
             self.loa_approver_file_path_input.set(file)
             self.status_var.set(f"Selected: {os.path.basename(file)}")
     
+    def browse_loa_reference_file(self):
+        """Browse for processed WP LOA REPORT file as reference for enrichment"""
+        file = filedialog.askopenfilename(
+            title="Select Processed WP LOA REPORT File (Optional - for data enrichment)",
+            filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")]
+        )
+        if file:
+            self.loa_reference_file_path_input.set(file)
+            self.status_var.set(f"Reference file selected: {os.path.basename(file)}")
+    
     def clear_wp_loa_form(self):
         """Clear all WP LOA form fields"""
         self.wp_loa_file_path.set("No file selected")
         self.availment_file_path.set("Not selected")
         self.loa_approver_file_path.set("Not selected")
         self.loa_approver_file_path_input.set("No file selected")
+        self.loa_reference_file_path_input.set("Optional - for data enrichment")
         self.status_var.set("Form cleared")
     
     def process_loa_current_approver_threaded(self):
@@ -1057,12 +1103,17 @@ class CAPEXReportingApp:
             self.show_loading("Processing LOA CURRENT APPROVER file... Adding formulas and columns")
             
             loa_file = self.loa_approver_file_path_input.get()
+            reference_file = self.loa_reference_file_path_input.get()
+            
+            # If reference file is not selected, set to None
+            if reference_file == "Optional - for data enrichment":
+                reference_file = None
             
             # Create formula processor and process the file
             processor = WPLOAFormulaProcessor(loa_file)
             
             # Process LOA CURRENT APPROVER file - returns tuple (success, output_path_or_error)
-            success, result = processor.process_loa_current_approver(loa_file)
+            success, result = processor.process_loa_current_approver(loa_file, reference_file_path=reference_file)
             
             if success:
                 self.hide_loading()
