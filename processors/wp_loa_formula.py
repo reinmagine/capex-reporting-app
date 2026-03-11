@@ -347,7 +347,7 @@ class WPLOAFormulaProcessor:
             loa_ws['V1'].value = 5   # DEP = Dept (column F)
             loa_ws['W1'].value = 12  # FUNDING = Funding Source (column M)
             loa_ws['X1'].value = 2   # Network Classif = Network Classification (column C)
-            loa_ws['Z1'].value = 37  # DIV IN REPORT = (column AM)
+            loa_ws['Z1'].value = 39  # DIV IN REPORT = (column AM)
             loa_ws['AA1'].value = 9  # PROGRAM IN REPORT = Program Name (column J)
             loa_ws['AB1'].value = 10 # PROJ = Project Name (column K)
             loa_ws['AC1'].value = 11 # SUBPROJ = Sub-project Name (column L)
