@@ -336,6 +336,20 @@ class WPLOAFormulaProcessor:
             # Add "Current Approver 1" header at column AD (30)
             loa_ws.cell(row=2, column=30).value = 'Current Approver 1'
             
+            # Add column numbers in row 1 for VLOOKUP formulas (these reference which column in BUDGET!$B:$AM)
+            # T=PROGRAM MBR, U=DIV, V=DEP, W=FUNDING, X=Network Classif, Y=PROPONENT, Z=DIV IN REPORT, AA=PROGRAM IN REPORT, AB=PROJ, AC=SUBPROJ
+            # You may need to adjust these column numbers based on your BUDGET sheet structure
+            loa_ws['T1'].value = 17  # PROGRAM MBR column number in B:AM range (adjust if needed)
+            loa_ws['U1'].value = 7   # DIV column number in B:AM range (adjust if needed)
+            loa_ws['V1'].value = 6   # DEP column number in B:AM range (adjust if needed)
+            loa_ws['W1'].value = 12  # FUNDING column number in B:AM range (adjust if needed)
+            loa_ws['X1'].value = 24  # Network Classif column number in B:AM range (adjust if needed)
+            loa_ws['Y1'].value = 23  # PROPONENT column number - will be overridden with PROPER formula
+            loa_ws['Z1'].value = 7   # DIV IN REPORT column number in B:AM range (adjust if needed)
+            loa_ws['AA1'].value = 16 # PROGRAM IN REPORT column number in B:AM range (adjust if needed)
+            loa_ws['AB1'].value = 19 # PROJ column number in B:AM range (adjust if needed)
+            loa_ws['AC1'].value = 20 # SUBPROJ column number in B:AM range (adjust if needed)
+            
             # Add formulas for each data row (starting from row 3 since row 2 has headers now)
             for row in range(3, last_row + 2):
                 # Column L: PID (L1 WBS) - PRESERVE existing data (do not overwrite)
@@ -366,27 +380,36 @@ class WPLOAFormulaProcessor:
                 # Column S: L2 (all parts, same as L, e.g., M-MRSF-26-SE)
                 loa_ws[f'S{row}'].value = f'=L{row}'
                 
-                # Column T: PROGRAM MBR - VLOOKUP using column S (L2) with header reference
-                loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(T$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                # Column T: PROGRAM MBR - VLOOKUP using column S (L2) with column number from T1
+                loa_ws[f'T{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,T$1,0)'
                 
-                # Column U: DIV - VLOOKUP using column S with header reference
-                loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(U$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                # Column U: DIV - VLOOKUP using column S with column number from U1
+                loa_ws[f'U{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,U$1,0)'
                 
-                # Column V: DEP - VLOOKUP using column S with header reference
-                loa_ws[f'V{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(V$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                # Column V: DEP - VLOOKUP using column S with column number from V1
+                loa_ws[f'V{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,V$1,0)'
                 
-                # Column W: FUNDING - VLOOKUP using column S with header reference
-                loa_ws[f'W{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(W$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                # Column W: FUNDING - VLOOKUP using column S with column number from W1
+                loa_ws[f'W{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,W$1,0)'
                 
-                # Column X: Network Classif from BUDGET sheet
-                loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},BUDGET!$A:$C,3,0),"N/A")'
+                # Column X: Network Classif - VLOOKUP using column A (LOA#) with column number from X1
+                loa_ws[f'X{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,X$1,0)'
                 
-                # Columns Y-AC: Remaining formula columns from BUDGET sheet
-                loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(Y$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # PROPONENT
-                loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(Z$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # DIV IN REPORT
-                loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(AA$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # PROGRAM IN REPORT
-                loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(AB$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # PROJ
-                loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(AC$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # SUBPROJ
+                # Column Y: PROPONENT - Format column I (Reported By) to proper case (First Name Last Name)
+                # Convert "LAST NAME, First Name" to "First Name Last Name"
+                loa_ws[f'Y{row}'].value = f'=PROPER(I{row})'
+                
+                # Column Z: DIV IN REPORT - VLOOKUP using column S with column number from Z1
+                loa_ws[f'Z{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,Z$1,0)'
+                
+                # Column AA: PROGRAM IN REPORT - VLOOKUP using column S with column number from AA1
+                loa_ws[f'AA{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,AA$1,0)'
+                
+                # Column AB: PROJ - VLOOKUP using column S with column number from AB1
+                loa_ws[f'AB{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,AB$1,0)'
+                
+                # Column AC: SUBPROJ - VLOOKUP using column S with column number from AC1
+                loa_ws[f'AC{row}'].value = f'=VLOOKUP($S{row},BUDGET!$B:$AM,AC$1,0)'
                 
                 # Column AD: Current Approver 1 - Format name from column E
                 # Convert "LAST NAME, First Name" to "First Name Last Name"
