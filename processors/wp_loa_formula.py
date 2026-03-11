@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple
 import shutil
 import sys
 import os
+from datetime import datetime
 
 # Add utils to path for file detector import
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -285,10 +286,11 @@ class WPLOAFormulaProcessor:
             from openpyxl.utils import get_column_letter
             from pathlib import Path
             
-            # If no output path specified, create one based on input file
+            # If no output path specified, create one based on input file with timestamp
             if output_path is None:
                 base_path = Path(loa_current_approver_path)
-                output_path = str(base_path.parent / f"{base_path.stem}_Processed{base_path.suffix}")
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                output_path = str(base_path.parent / f"WP_LOA_Processed_{timestamp}{base_path.suffix}")
             
             # Load LOA CURRENT APPROVER workbook
             loa_wb = openpyxl.load_workbook(loa_current_approver_path)
