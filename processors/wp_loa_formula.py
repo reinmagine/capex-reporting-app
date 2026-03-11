@@ -338,8 +338,8 @@ class WPLOAFormulaProcessor:
             
             # Add formulas for each data row (starting from row 3 since row 2 has headers now)
             for row in range(3, last_row + 2):
-                # Column L: PID (L1 WBS) - User input field (leave empty for user to fill)
-                loa_ws[f'L{row}'].value = ''
+                # Column L: PID (L1 WBS) - PRESERVE existing data (do not overwrite)
+                # Keep whatever data is already in column L
                 
                 # Column M: Summary(Total Purchase Amount in USD) - user input
                 loa_ws[f'M{row}'].value = ''
