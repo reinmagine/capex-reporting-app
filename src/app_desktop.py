@@ -1087,18 +1087,21 @@ class CAPEXReportingApp:
                                   f"File: {os.path.basename(output_path)}\n" +
                                   f"Location: {os.path.dirname(output_path)}\n" +
                                   f"Size: {file_size:.1f} MB\n\n" +
-                                  f"Columns Added (L-AD):\n" +
-                                  f"  • PID (L1 WBS) - L\n" +
-                                  f"  • Summary (Total Purchase Amount in USD) - M\n" +
+                                  f"Columns Added/Modified (L-AD):\n" +
+                                  f"  • PID (L1 WBS) - L (original data preserved)\n" +
+                                  f"  • Summary (Total Purchase Amount in USD) - M (user input)\n" +
                                   f"  • PID (Mother and Sub) - N\n" +
-                                  f"  • 1, YEAR, 3, L1, L2 - O-S\n" +
-                                  f"  • PROGRAM MBR, DIV, DEP, FUNDING - T-W (from BUDGET)\n" +
-                                  f"  • Network Classif - X (from BUDGET)\n" +
-                                  f"  • PROPONENT, DIV IN REPORT, PROGRAM IN REPORT - Y-AA (from BUDGET)\n" +
-                                  f"  • PROJ, SUBPROJ - AB-AC (from BUDGET)\n" +
-                                  f"  • Current Approver 1 (formatted name) - AD\n\n" +
-                                  f"All formulas reference BUDGET sheet in the same file\n\n" +
-                                  f"File saved as _Processed version (original file not modified)")
+                                  f"  • PID Parts (1, YEAR, 3, L1, L2) - O-S\n" +
+                                  f"  • PROGRAM MBR, DIV, DEP, FUNDING - T-W (VLOOKUP from BUDGET)\n" +
+                                  f"  • Network Classif - X (VLOOKUP from BUDGET)\n" +
+                                  f"  • PROPONENT - Y (converted from 'Last, First' to 'First Last')\n" +
+                                  f"  • DIV IN REPORT - Z (mapped values based on DIV)\n" +
+                                  f"  • PROGRAM IN REPORT - AA (VLOOKUP from BUDGET)\n" +
+                                  f"  • PROJ, SUBPROJ - AB-AC (VLOOKUP from BUDGET)\n" +
+                                  f"  • Current Approver 1 - AD (formatted name from LOA file)\n\n" +
+                                  f"All formulas reference BUDGET sheet in the same file.\n" +
+                                  f"File saved with timestamp: LOA_CURRENT_APPROVER_Processed_YYYYMMDD_HHMMSS.xlsx\n\n" +
+                                  f"Original file not modified")
             else:
                 self.hide_loading()
                 error_msg = result
