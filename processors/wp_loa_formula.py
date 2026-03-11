@@ -338,47 +338,57 @@ class WPLOAFormulaProcessor:
             
             # Add formulas for each data row (starting from row 3 since row 2 has headers now)
             for row in range(3, last_row + 2):
-                # Column L: PID (L1 WBS) - user input
-                loa_ws[f'L{row}'].value = ''
+                # Column L: PID (L1 WBS) - References source column (likely from original data)
+                # This should reference the column in the original LOA file that contains the PID
+                # For now, it references column B (adjust column letter if needed based on your file)
+                loa_ws[f'L{row}'].value = f'=B{row}'
                 
                 # Column M: Summary(Total Purchase Amount in USD) - user input
                 loa_ws[f'M{row}'].value = ''
                 
-                # Column N: PID (Mother and Sub) - empty for now (will reference if available)
-                loa_ws[f'N{row}'].value = ''
+                # Column N: PID (Mother and Sub) - Full PID value from column L
+                loa_ws[f'N{row}'].value = f'=L{row}'
                 
-                # Columns O-S: Extract and formula columns
-                # O: '1' (user input)
-                loa_ws[f'O{row}'].value = ''
+                # Column O: Extract '1' (second part, e.g., MRSF from M-MRSF-26-SE)
+                # Logic: Find text between first dash and second dash
+                loa_ws[f'O{row}'].value = f'=IFERROR(TRIM(MID(L{row},FIND("-",L{row})+1,FIND("-",L{row},FIND("-",L{row})+1)-FIND("-",L{row})-1)),"N/A")'
                 
-                # P: YEAR (user input)
-                loa_ws[f'P{row}'].value = ''
+                # Column P: Extract 'YEAR' (third part, e.g., 26 from M-MRSF-26-SE)
+                # Logic: Find text between second dash and third dash
+                loa_ws[f'P{row}'].value = f'=IFERROR(TRIM(MID(L{row},FIND("-",L{row},FIND("-",L{row})+1)+1,FIND("-",L{row},FIND("-",L{row},FIND("-",L{row})+1)+1)-FIND("-",L{row},FIND("-",L{row})+1)-1)),"N/A")'
                 
-                # Q: '3' (user input)
-                loa_ws[f'Q{row}'].value = ''
+                # Column Q: Extract '3' (fourth part, e.g., SE from M-MRSF-26-SE)
+                # Logic: Find text after third dash
+                loa_ws[f'Q{row}'].value = f'=IFERROR(TRIM(MID(L{row},FIND("-",L{row},FIND("-",L{row},FIND("-",L{row})+1)+1)+1,LEN(L{row}))),"N/A")'
                 
-                # R: L1 (user input)
-                loa_ws[f'R{row}'].value = ''
+                # Column R: L1 (first three parts, e.g., M-MRSF-26 from M-MRSF-26-SE)
+                # Logic: Find the position of the third dash and extract up to that point
+                loa_ws[f'R{row}'].value = f'=IFERROR(TRIM(LEFT(L{row},FIND("-",L{row},FIND("-",L{row},FIND("-",L{row})+1)+1)-1)),"N/A")'
                 
-                # S: L2 (user input)
-                loa_ws[f'S{row}'].value = ''
+                # Column S: L2 (all parts, same as L, e.g., M-MRSF-26-SE)
+                loa_ws[f'S{row}'].value = f'=L{row}'
                 
-                # T-W: VLOOKUP formulas referencing BUDGET sheet
-                # All lookups use column R (L1 field) as the key
-                loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM MBR
-                loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV
-                loa_ws[f'V{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,5,0),"N/A")'  # DEP
-                loa_ws[f'W{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,12,0),"N/A")'  # FUNDING
+                # Column T: PROGRAM MBR - VLOOKUP using column S (L2) with header reference
+                loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(T$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                
+                # Column U: DIV - VLOOKUP using column S with header reference
+                loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(U$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                
+                # Column V: DEP - VLOOKUP using column S with header reference
+                loa_ws[f'V{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(V$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
+                
+                # Column W: FUNDING - VLOOKUP using column S with header reference
+                loa_ws[f'W{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(W$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'
                 
                 # Column X: Network Classif from BUDGET sheet
                 loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},BUDGET!$A:$C,3,0),"N/A")'
                 
                 # Columns Y-AC: Remaining formula columns from BUDGET sheet
-                loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROPONENT
-                loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV IN REPORT
-                loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM IN REPORT
-                loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,10,0),"N/A")'  # PROJ
-                loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,11,0),"N/A")'  # SUBPROJ
+                loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(Y$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # PROPONENT
+                loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(Z$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # DIV IN REPORT
+                loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(AA$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # PROGRAM IN REPORT
+                loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(AB$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # PROJ
+                loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($S{row},BUDGET!$B:$AM,MATCH(AC$2,BUDGET!$B$2:$AM$2,0)+1,0),"N/A")'  # SUBPROJ
                 
                 # Column AD: Current Approver 1 - Format name from column E
                 # Convert "LAST NAME, First Name" to "First Name Last Name"
