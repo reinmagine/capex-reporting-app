@@ -973,12 +973,12 @@ class CAPEXReportingApp:
         loa_row1 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
         loa_row1.pack(fill=tk.X, pady=(0, 10))
         
-        tk.Label(loa_row1, text="LOA CURRENT APPROVER File:", font=("Segoe UI", 8, "bold"), 
+        tk.Label(loa_row1, text="LOA CURRENT APPROVER File:", font=("Segoe UI", 8), 
                 bg='#f0f0f0', fg='#333').pack(side=tk.LEFT, padx=(0, 5))
         
         self.loa_approver_file_path_input = tk.StringVar(value="No file selected")
         loa_approver_label = tk.Label(loa_row1, textvariable=self.loa_approver_file_path_input,
-                                      font=("Segoe UI", 8), bg='#f0f0f0', fg='#555')
+                                      font=("Segoe UI", 8), bg='#f0f0f0', fg='#999')
         loa_approver_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
         
         browse_approver_btn = tk.Button(loa_row1, text="Browse", 
@@ -991,12 +991,12 @@ class CAPEXReportingApp:
         loa_row2 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
         loa_row2.pack(fill=tk.X, pady=(0, 10))
         
-        tk.Label(loa_row2, text="Processed WP LOA Report File:", font=("Segoe UI", 8, "bold"), 
+        tk.Label(loa_row2, text="Processed WP LOA Report File:", font=("Segoe UI", 8), 
                 bg='#f0f0f0', fg='#333').pack(side=tk.LEFT, padx=(0, 5))
         
         self.loa_reference_file_path_input = tk.StringVar(value="No file selected")
         loa_reference_label = tk.Label(loa_row2, textvariable=self.loa_reference_file_path_input,
-                                       font=("Segoe UI", 8), bg='#f0f0f0', fg='#555')
+                                       font=("Segoe UI", 8), bg='#f0f0f0', fg='#999')
         loa_reference_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
         
         browse_reference_btn = tk.Button(loa_row2, text="Browse", 
@@ -1015,7 +1015,7 @@ class CAPEXReportingApp:
         loa_row3 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
         loa_row3.pack(fill=tk.X)
         
-        process_approver_btn = tk.Button(loa_row3, text="Process LOA Approver", 
+        process_approver_btn = tk.Button(loa_row3, text="Process LOA Current Approver", 
                                         command=self.process_loa_current_approver_threaded,
                                         font=("Segoe UI", 8, "bold"), 
                                         bg='#6a1b9a', fg='white', padx=15,
