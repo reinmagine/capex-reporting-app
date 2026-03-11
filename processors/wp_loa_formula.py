@@ -337,18 +337,18 @@ class WPLOAFormulaProcessor:
             loa_ws.cell(row=2, column=30).value = 'Current Approver 1'
             
             # Add column numbers in row 1 for VLOOKUP formulas (these reference which column in BUDGET!$B:$AM)
-            # T=PROGRAM MBR, U=DIV, V=DEP, W=FUNDING, X=Network Classif, Y=PROPONENT, Z=DIV IN REPORT, AA=PROGRAM IN REPORT, AB=PROJ, AC=SUBPROJ
-            # You may need to adjust these column numbers based on your BUDGET sheet structure
-            loa_ws['T1'].value = 17  # PROGRAM MBR column number in B:AM range (adjust if needed)
-            loa_ws['U1'].value = 7   # DIV column number in B:AM range (adjust if needed)
-            loa_ws['V1'].value = 6   # DEP column number in B:AM range (adjust if needed)
-            loa_ws['W1'].value = 12  # FUNDING column number in B:AM range (adjust if needed)
-            loa_ws['X1'].value = 24  # Network Classif column number in B:AM range (adjust if needed)
-            loa_ws['Y1'].value = 23  # PROPONENT column number - will be overridden with PROPER formula
-            loa_ws['Z1'].value = 7   # DIV IN REPORT column number in B:AM range (adjust if needed)
-            loa_ws['AA1'].value = 16 # PROGRAM IN REPORT column number in B:AM range (adjust if needed)
-            loa_ws['AB1'].value = 19 # PROJ column number in B:AM range (adjust if needed)
-            loa_ws['AC1'].value = 20 # SUBPROJ column number in B:AM range (adjust if needed)
+            # Based on BUDGET sheet structure: B=L2 WBS(lookup), C=Network Class, D=CFU Sponsor, E=CAPEX Type
+            # F=Dept, G=Div, H=Budget Owner, I=Budget Owner SPOC, J=Program Name, K=Project Name, L=Sub-project
+            # M=Funding Source... AM=DIV IN REPORT
+            loa_ws['T1'].value = 9   # PROGRAM MBR = Program Name (column J)
+            loa_ws['U1'].value = 6   # DIV = Div (column G)
+            loa_ws['V1'].value = 5   # DEP = Dept (column F)
+            loa_ws['W1'].value = 12  # FUNDING = Funding Source (column M)
+            loa_ws['X1'].value = 2   # Network Classif = Network Classification (column C)
+            loa_ws['Z1'].value = 37  # DIV IN REPORT = (column AM)
+            loa_ws['AA1'].value = 9  # PROGRAM IN REPORT = Program Name (column J)
+            loa_ws['AB1'].value = 10 # PROJ = Project Name (column K)
+            loa_ws['AC1'].value = 11 # SUBPROJ = Sub-project Name (column L)
             
             # Add formulas for each data row (starting from row 3 since row 2 has headers now)
             for row in range(3, last_row + 2):
