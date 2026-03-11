@@ -251,7 +251,8 @@ class WPLOAFormulaProcessor:
             return False
     
     def process_loa_current_approver(self, loa_current_approver_path: str, 
-                                     budget_file_path: Optional[str] = None) -> bool:
+                                     budget_file_path: Optional[str] = None,
+                                     output_path: Optional[str] = None) -> tuple:
         """
         Process LOA CURRENT APPROVER file and add formula columns + Network Classification + Current Approver 1
         
@@ -270,25 +271,27 @@ class WPLOAFormulaProcessor:
         Args:
             loa_current_approver_path: Path to LOA CURRENT APPROVER file
             budget_file_path: Path to BUDGET file with Network Classification data
+            output_path: Path to save processed file (if None, creates _Processed version)
+            
+        Returns:
+            tuple: (success: bool, output_path: str or error_message: str)
         """
         try:
             from openpyxl.utils import get_column_letter
+            from pathlib import Path
+            
+            # If no output path specified, create one based on input file
+            if output_path is None:
+                base_path = Path(loa_current_approver_path)
+                output_path = str(base_path.parent / f"{base_path.stem}_Processed{base_path.suffix}")
             
             # Load LOA CURRENT APPROVER workbook
             loa_wb = openpyxl.load_workbook(loa_current_approver_path)
             loa_ws = loa_wb.active
             
-            # Load LOA CURRENT APPROVER data
-            loa_df = pd.read_excel(loa_current_approver_path)
-            
-            # Identify column positions in LOA file
-            # Expected: A=LOA#, B=Subject, C=Total Amount, D=STATUS, E=Current Approver, F-K=other data
-            
             last_row = loa_ws.max_row
             
             # Add formula columns starting at column L (column 12)
-            # K→L (12), L→M (13), M→N (14), etc.
-            
             # Column headers for the new columns (L onwards)
             new_headers = [
                 'PID (Mother and Sub)',  # L (12)
@@ -366,13 +369,17 @@ class WPLOAFormulaProcessor:
                 )
                 loa_ws[f'AD{row}'].value = format_name_formula
             
-            # Save the workbook
-            loa_wb.save(loa_current_approver_path)
-            return True
+            # Save the workbook to OUTPUT FILE (new file, not original)
+            loa_wb.save(output_path)
+            return True, output_path
             
+        except PermissionError as e:
+            error_msg = f"Permission denied - please close the file in Excel and try again"
+            print(f"Error processing LOA CURRENT APPROVER: {error_msg}")
+            return False, error_msg
         except Exception as e:
             print(f"Error processing LOA CURRENT APPROVER: {str(e)}")
-            return False
+            return False, str(e)
     
     def get_summary(self) -> Dict:
         """Get processing summary."""

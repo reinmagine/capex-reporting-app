@@ -1061,52 +1061,35 @@ class CAPEXReportingApp:
             # Create formula processor and process the file
             processor = WPLOAFormulaProcessor(loa_file)
             
-            # Process LOA CURRENT APPROVER file
-            success = processor.process_loa_current_approver(loa_file)
+            # Process LOA CURRENT APPROVER file - returns tuple (success, output_path_or_error)
+            success, result = processor.process_loa_current_approver(loa_file)
             
             if success:
                 self.hide_loading()
+                output_path = result
                 
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                default_filename = f'LOA_CURRENT_APPROVER_Processed_{timestamp}.xlsx'
-                
-                save_path = filedialog.asksaveasfilename(
-                    defaultextension=".xlsx",
-                    initialfile=default_filename,
-                    filetypes=[("Excel Files", "*.xlsx")]
-                )
-                
-                if save_path:
-                    self.show_loading("Saving processed LOA CURRENT APPROVER file...")
-                    
-                    # Copy and rename the processed file
-                    import shutil
-                    shutil.copy(loa_file, save_path)
-                    
-                    self.hide_loading()
-                    
-                    file_size = os.path.getsize(save_path) / (1024 * 1024)
-                    self.status_var.set(f"Success! LOA CURRENT APPROVER processed")
-                    messagebox.showinfo("Success",
-                                      f"LOA CURRENT APPROVER Processed Successfully!\n\n" +
-                                      f"File: {os.path.basename(save_path)}\n" +
-                                      f"Size: {file_size:.1f} MB\n\n" +
-                                      f"Columns Added (L-AD):\n" +
-                                      f"  • PID (Mother and Sub) - L\n" +
-                                      f"  • 1, YEAR, 3 - M-O\n" +
-                                      f"  • L1, L2 - P-Q\n" +
-                                      f"  • PROGRAM MBR, DIV, DEP, FUNDING - R-U\n" +
-                                      f"  • Network Classif - X (from BUDGET)\n" +
-                                      f"  • PROPONENT, DIV IN REPORT, PROGRAM IN REPORT - Y-AA\n" +
-                                      f"  • PROJ, SUBPROJ - AB-AC\n" +
-                                      f"  • Current Approver 1 (formatted name) - AD\n\n" +
-                                      f"All columns contain formulas for auto-calculation")
-                else:
-                    self.hide_loading()
-                    self.status_var.set("Processing cancelled by user")
+                file_size = os.path.getsize(output_path) / (1024 * 1024)
+                self.status_var.set(f"Success! LOA CURRENT APPROVER processed")
+                messagebox.showinfo("Success",
+                                  f"LOA CURRENT APPROVER Processed Successfully!\n\n" +
+                                  f"File: {os.path.basename(output_path)}\n" +
+                                  f"Location: {os.path.dirname(output_path)}\n" +
+                                  f"Size: {file_size:.1f} MB\n\n" +
+                                  f"Columns Added (L-AD):\n" +
+                                  f"  • PID (Mother and Sub) - L\n" +
+                                  f"  • 1, YEAR, 3 - M-O\n" +
+                                  f"  • L1, L2 - P-Q\n" +
+                                  f"  • PROGRAM MBR, DIV, DEP, FUNDING - R-U\n" +
+                                  f"  • Network Classif - X (from BUDGET)\n" +
+                                  f"  • PROPONENT, DIV IN REPORT, PROGRAM IN REPORT - Y-AA\n" +
+                                  f"  • PROJ, SUBPROJ - AB-AC\n" +
+                                  f"  • Current Approver 1 (formatted name) - AD\n\n" +
+                                  f"All columns contain formulas for auto-calculation\n\n" +
+                                  f"File saved as _Processed version (original file not modified)")
             else:
                 self.hide_loading()
-                messagebox.showerror("Error", "Failed to process LOA CURRENT APPROVER file")
+                error_msg = result
+                messagebox.showerror("Error", f"Failed to process LOA CURRENT APPROVER file:\n\n{error_msg}")
                 self.status_var.set("Processing failed")
         
         except Exception as e:
