@@ -361,11 +361,11 @@ class WPLOAFormulaProcessor:
                 # Otherwise, reference BUDGET sheet in current workbook
                 if reference_file_path:
                     # Reference external processed WP LOA file
-                    # Format: 'Processed Data' sheet, lookup by column P (L2)
-                    loa_ws[f'R{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,16,0),"N/A")'  # PROGRAM MBR (col Q in WP LOA)
-                    loa_ws[f'S{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,7,0),"N/A")'  # DIV (col H in WP LOA)
-                    loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,6,0),"N/A")'  # DEP (col G in WP LOA)
-                    loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,11,0),"N/A")'  # FUNDING (col K in WP LOA)
+                    # Lookup by LOA# (column A) - actual data instead of user input field (column P)
+                    loa_ws[f'R{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,16,0),"N/A")'  # PROGRAM MBR (col Q in WP LOA)
+                    loa_ws[f'S{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,7,0),"N/A")'  # DIV (col H in WP LOA)
+                    loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,6,0),"N/A")'  # DEP (col G in WP LOA)
+                    loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,11,0),"N/A")'  # FUNDING (col K in WP LOA)
                 else:
                     # Reference BUDGET sheet (fallback if no reference file provided)
                     loa_ws[f'R{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM MBR
@@ -375,18 +375,19 @@ class WPLOAFormulaProcessor:
                 
                 # Column X: Network Classif - use reference file if provided, otherwise BUDGET
                 if reference_file_path:
-                    # In processed WP LOA, Network Classif is in column X (column 24)
-                    loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,24,0),"N/A")'
+                    # In processed WP LOA, Network Classif is in column X (column 24), lookup by LOA# (column A)
+                    loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,24,0),"N/A")'
                 else:
                     loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},BUDGET!$A:$C,3,0),"N/A")'
                 
                 # Columns Y-AC: Remaining formula columns
                 if reference_file_path:
-                    loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,23,0),"N/A")'  # PROPONENT (col W in WP LOA)
-                    loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,7,0),"N/A")'  # DIV IN REPORT (col H in WP LOA)
-                    loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,16,0),"N/A")'  # PROGRAM IN REPORT (col Q in WP LOA)
-                    loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,19,0),"N/A")'  # PROJ (col S in WP LOA)
-                    loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($P{row},{reference_file_formula_part}$B:$AB,20,0),"N/A")'  # SUBPROJ (col T in WP LOA)
+                    # Use LOA# (column A) for all lookups in reference file
+                    loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,23,0),"N/A")'  # PROPONENT (col W in WP LOA)
+                    loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,7,0),"N/A")'  # DIV IN REPORT (col H in WP LOA)
+                    loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,16,0),"N/A")'  # PROGRAM IN REPORT (col Q in WP LOA)
+                    loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,19,0),"N/A")'  # PROJ (col S in WP LOA)
+                    loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,20,0),"N/A")'  # SUBPROJ (col T in WP LOA)
                 else:
                     loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,9,0),"N/A")'  # PROPONENT
                     loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($P{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV IN REPORT
