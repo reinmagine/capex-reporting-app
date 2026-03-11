@@ -987,35 +987,11 @@ class CAPEXReportingApp:
                                        padx=12, relief=tk.FLAT, cursor="hand2")
         browse_approver_btn.pack(side=tk.LEFT)
         
-        # Row 2: Reference WP LOA Report file selection
+        # Row 2: Process button (removed reference file - now uses BUDGET sheet only)
         loa_row2 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
-        loa_row2.pack(fill=tk.X, pady=(0, 10))
+        loa_row2.pack(fill=tk.X, pady=(10, 0))
         
-        tk.Label(loa_row2, text="Processed WP LOA Report File:", font=("Segoe UI", 8), 
-                bg='#f0f0f0', fg='#333').pack(side=tk.LEFT, padx=(0, 5))
-        
-        self.loa_reference_file_path_input = tk.StringVar(value="No file selected")
-        loa_reference_label = tk.Label(loa_row2, textvariable=self.loa_reference_file_path_input,
-                                       font=("Segoe UI", 8), bg='#f0f0f0', fg='#999')
-        loa_reference_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
-        
-        browse_reference_btn = tk.Button(loa_row2, text="Browse", 
-                                        command=self.browse_loa_reference_file,
-                                        font=("Segoe UI", 8), bg='#29348F', fg='white',
-                                        padx=12, relief=tk.FLAT, cursor="hand2")
-        browse_reference_btn.pack(side=tk.LEFT, padx=(0, 5))
-        
-        clear_reference_btn = tk.Button(loa_row2, text="Clear", 
-                                       command=lambda: self.loa_reference_file_path_input.set("No file selected"),
-                                       font=("Segoe UI", 8), bg='#999', fg='white',
-                                       padx=12, relief=tk.FLAT, cursor="hand2")
-        clear_reference_btn.pack(side=tk.LEFT)
-        
-        # Row 3: Process button
-        loa_row3 = tk.Frame(loa_approver_frame, bg='#f0f0f0')
-        loa_row3.pack(fill=tk.X)
-        
-        process_approver_btn = tk.Button(loa_row3, text="Process LOA Current Approver", 
+        process_approver_btn = tk.Button(loa_row2, text="Process LOA Current Approver", 
                                         command=self.process_loa_current_approver_threaded,
                                         font=("Segoe UI", 8, "bold"), 
                                         bg='#6a1b9a', fg='white', padx=15,
@@ -1069,23 +1045,12 @@ class CAPEXReportingApp:
             self.loa_approver_file_path_input.set(file)
             self.status_var.set(f"Selected: {os.path.basename(file)}")
     
-    def browse_loa_reference_file(self):
-        """Browse for processed WP LOA report file"""
-        file = filedialog.askopenfilename(
-            title="Select Processed WP LOA Report File",
-            filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")]
-        )
-        if file:
-            self.loa_reference_file_path_input.set(file)
-            self.status_var.set(f"Reference file selected: {os.path.basename(file)}")
-    
     def clear_wp_loa_form(self):
         """Clear all WP LOA form fields"""
         self.wp_loa_file_path.set("No file selected")
         self.availment_file_path.set("Not selected")
         self.loa_approver_file_path.set("Not selected")
         self.loa_approver_file_path_input.set("No file selected")
-        self.loa_reference_file_path_input.set("No file selected")
         self.status_var.set("Form cleared")
     
     def process_loa_current_approver_threaded(self):
@@ -1103,17 +1068,13 @@ class CAPEXReportingApp:
             self.show_loading("Processing LOA CURRENT APPROVER file... Adding formulas and columns")
             
             loa_file = self.loa_approver_file_path_input.get()
-            reference_file = self.loa_reference_file_path_input.get()
-            
-            # If reference file is not selected, set to None
-            if reference_file == "No file selected":
-                reference_file = None
             
             # Create formula processor and process the file
             processor = WPLOAFormulaProcessor(loa_file)
             
             # Process LOA CURRENT APPROVER file - returns tuple (success, output_path_or_error)
-            success, result = processor.process_loa_current_approver(loa_file, reference_file_path=reference_file)
+            # Always uses BUDGET sheet from the same workbook for lookups
+            success, result = processor.process_loa_current_approver(loa_file)
             
             if success:
                 self.hide_loading()
@@ -1127,15 +1088,16 @@ class CAPEXReportingApp:
                                   f"Location: {os.path.dirname(output_path)}\n" +
                                   f"Size: {file_size:.1f} MB\n\n" +
                                   f"Columns Added (L-AD):\n" +
-                                  f"  • PID (Mother and Sub) - L\n" +
-                                  f"  • 1, YEAR, 3 - M-O\n" +
-                                  f"  • L1, L2 - P-Q\n" +
-                                  f"  • PROGRAM MBR, DIV, DEP, FUNDING - R-U\n" +
+                                  f"  • PID (L1 WBS) - L\n" +
+                                  f"  • Summary (Total Purchase Amount in USD) - M\n" +
+                                  f"  • PID (Mother and Sub) - N\n" +
+                                  f"  • 1, YEAR, 3, L1, L2 - O-S\n" +
+                                  f"  • PROGRAM MBR, DIV, DEP, FUNDING - T-W (from BUDGET)\n" +
                                   f"  • Network Classif - X (from BUDGET)\n" +
-                                  f"  • PROPONENT, DIV IN REPORT, PROGRAM IN REPORT - Y-AA\n" +
-                                  f"  • PROJ, SUBPROJ - AB-AC\n" +
+                                  f"  • PROPONENT, DIV IN REPORT, PROGRAM IN REPORT - Y-AA (from BUDGET)\n" +
+                                  f"  • PROJ, SUBPROJ - AB-AC (from BUDGET)\n" +
                                   f"  • Current Approver 1 (formatted name) - AD\n\n" +
-                                  f"All columns contain formulas for auto-calculation\n\n" +
+                                  f"All formulas reference BUDGET sheet in the same file\n\n" +
                                   f"File saved as _Processed version (original file not modified)")
             else:
                 self.hide_loading()

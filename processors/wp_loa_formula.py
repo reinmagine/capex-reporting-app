@@ -252,8 +252,6 @@ class WPLOAFormulaProcessor:
             return False
     
     def process_loa_current_approver(self, loa_current_approver_path: str, 
-                                     budget_file_path: Optional[str] = None,
-                                     reference_file_path: Optional[str] = None,
                                      output_path: Optional[str] = None) -> tuple:
         """
         Process LOA CURRENT APPROVER file and add formula columns + Network Classification + Current Approver 1
@@ -261,8 +259,9 @@ class WPLOAFormulaProcessor:
         This method:
         1. Loads LOA CURRENT APPROVER file (existing columns A-K)
         2. Adds formula columns (L-AD): PID (L1 WBS), Summary, PID (Mother and Sub), 1, YEAR, 3, L1, L2, PROGRAM MBR, etc.
-        3. Inserts Network Classif column (X) from BUDGET or reference file
-        4. Adds Current Approver 1 column (AD) with formatted name
+        3. All formulas reference BUDGET sheet in the same workbook
+        4. Inserts Network Classif column (X) from BUDGET sheet
+        5. Adds Current Approver 1 column (AD) with formatted name
         
         Final structure:
         A-K: Original LOA CURRENT APPROVER data
@@ -270,15 +269,13 @@ class WPLOAFormulaProcessor:
         M: Summary(Total Purchase Amount in USD) - user input
         N: PID (Mother and Sub) - empty for reference
         O-S: 1, YEAR, 3, L1, L2 - user inputs
-        T-W: PROGRAM MBR, DIV, DEP, FUNDING - formulas
-        X: Network Classif - formula
-        Y-AC: PROPONENT, DIV IN REPORT, PROGRAM IN REPORT, PROJ, SUBPROJ - formulas
+        T-W: PROGRAM MBR, DIV, DEP, FUNDING - formulas from BUDGET
+        X: Network Classif - formula from BUDGET
+        Y-AC: PROPONENT, DIV IN REPORT, PROGRAM IN REPORT, PROJ, SUBPROJ - formulas from BUDGET
         AD: Current Approver 1 - formatted name
         
         Args:
             loa_current_approver_path: Path to LOA CURRENT APPROVER file
-            budget_file_path: Path to BUDGET file with Network Classification data (deprecated, use reference_file_path)
-            reference_file_path: Path to processed WP LOA REPORT file (optional - for data enrichment)
             output_path: Path to save processed file (if None, creates _Processed version)
             
         Returns:
@@ -297,16 +294,7 @@ class WPLOAFormulaProcessor:
             loa_wb = openpyxl.load_workbook(loa_current_approver_path)
             loa_ws = loa_wb.active
             
-            # Determine reference sheet - prefer reference_file_path, fall back to BUDGET in same workbook
-            # If reference_file_path is provided, formulas will reference that file
-            # Excel external reference syntax: '[filename]SheetName'!Range
-            reference_sheet_name = "Processed Data" if reference_file_path else "BUDGET"
-            if reference_file_path:
-                # Build correct Excel external reference: '[filename]SheetName'!
-                reference_file_formula_part = f"'[{os.path.basename(reference_file_path)}]{reference_sheet_name}'!"
-            else:
-                reference_file_formula_part = ""
-            
+            # All formulas will reference BUDGET sheet in the same workbook
             last_row = loa_ws.max_row
             
             # Add formula columns starting at column L (column 12)
@@ -375,44 +363,22 @@ class WPLOAFormulaProcessor:
                 # S: L2 (user input)
                 loa_ws[f'S{row}'].value = ''
                 
-                # T-W: VLOOKUP formulas referencing BUDGET sheet or reference file
-                # If reference_file_path provided, formulas will reference that file
-                # Otherwise, reference BUDGET sheet in current workbook
-                if reference_file_path:
-                    # Reference external processed WP LOA file
-                    # Lookup by LOA# (column A) - actual data instead of user input field (column R)
-                    loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,16,0),"N/A")'  # PROGRAM MBR (col Q in WP LOA)
-                    loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,7,0),"N/A")'  # DIV (col H in WP LOA)
-                    loa_ws[f'V{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,6,0),"N/A")'  # DEP (col G in WP LOA)
-                    loa_ws[f'W{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,11,0),"N/A")'  # FUNDING (col K in WP LOA)
-                else:
-                    # Reference BUDGET sheet (fallback if no reference file provided)
-                    loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM MBR
-                    loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV
-                    loa_ws[f'V{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,5,0),"N/A")'  # DEP
-                    loa_ws[f'W{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,12,0),"N/A")'  # FUNDING
+                # T-W: VLOOKUP formulas referencing BUDGET sheet
+                # All lookups use column R (L1 field) as the key
+                loa_ws[f'T{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM MBR
+                loa_ws[f'U{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV
+                loa_ws[f'V{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,5,0),"N/A")'  # DEP
+                loa_ws[f'W{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,12,0),"N/A")'  # FUNDING
                 
-                # Column X: Network Classif - use reference file if provided, otherwise BUDGET
-                if reference_file_path:
-                    # In processed WP LOA, Network Classif is in column X (column 24), lookup by LOA# (column A)
-                    loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,24,0),"N/A")'
-                else:
-                    loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},BUDGET!$A:$C,3,0),"N/A")'
+                # Column X: Network Classif from BUDGET sheet
+                loa_ws[f'X{row}'].value = f'=IFERROR(VLOOKUP($A{row},BUDGET!$A:$C,3,0),"N/A")'
                 
-                # Columns Y-AC: Remaining formula columns
-                if reference_file_path:
-                    # Use LOA# (column A) for all lookups in reference file
-                    loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,23,0),"N/A")'  # PROPONENT (col W in WP LOA)
-                    loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,7,0),"N/A")'  # DIV IN REPORT (col H in WP LOA)
-                    loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,16,0),"N/A")'  # PROGRAM IN REPORT (col Q in WP LOA)
-                    loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,19,0),"N/A")'  # PROJ (col S in WP LOA)
-                    loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($A{row},{reference_file_formula_part}$A:$AB,20,0),"N/A")'  # SUBPROJ (col T in WP LOA)
-                else:
-                    loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROPONENT
-                    loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV IN REPORT
-                    loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM IN REPORT
-                    loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,10,0),"N/A")'  # PROJ
-                    loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,11,0),"N/A")'  # SUBPROJ
+                # Columns Y-AC: Remaining formula columns from BUDGET sheet
+                loa_ws[f'Y{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROPONENT
+                loa_ws[f'Z{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,6,0),"N/A")'  # DIV IN REPORT
+                loa_ws[f'AA{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,9,0),"N/A")'  # PROGRAM IN REPORT
+                loa_ws[f'AB{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,10,0),"N/A")'  # PROJ
+                loa_ws[f'AC{row}'].value = f'=IFERROR(VLOOKUP($R{row},BUDGET!$B:$N,11,0),"N/A")'  # SUBPROJ
                 
                 # Column AD: Current Approver 1 - Format name from column E
                 # Convert "LAST NAME, First Name" to "First Name Last Name"
