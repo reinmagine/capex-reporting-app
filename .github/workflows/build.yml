@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Optional release tag (example: v1.2.3). If blank, build-<run_number> is used.
+        description: 'Optional release tag (example: v1.2.3). If blank, build-<run_number> is used.'
         required: false
         type: string
 
