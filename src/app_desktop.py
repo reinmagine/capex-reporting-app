@@ -11,12 +11,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
+
 import pandas as pd
 import os
 from datetime import datetime
 import threading
 import requests
 import openpyxl
+import platform
+import subprocess
+
+try:
+    import winreg
+except ImportError:
+    winreg = None
 
 from processors.cji import CJIProcessor
 from processors.rfp_reclass import RFPReclassProcessor
@@ -34,7 +42,7 @@ from config.version import VERSION, VERSION_CHECK_URL
 class CAPEXReportingApp:
     def __init__(self, root):
         self.root = root
-        self.root.title(f"CAPEX Reporting Tool v{VERSION}")
+        self.root.title(f"CAPEX Reporting Automation Tool v{VERSION}")
         self.root.geometry("1000x800")
         self.root.configure(bg='#f0f0f0')
         
@@ -51,7 +59,7 @@ class CAPEXReportingApp:
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         # Title
-        title = tk.Label(main_frame, text="CAPEX Reporting Tool", 
+        title = tk.Label(main_frame, text="CAPEX Reporting Automation Tool", 
                         font=("Segoe UI", 20, "bold"), bg='#f0f0f0', fg='#29348F')
         title.pack(pady=(0, 2))
         
@@ -89,6 +97,156 @@ class CAPEXReportingApp:
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         
         self.selected_file = None
+        self._apply_system_theme()
+
+    def _pick_single_input_file(self, title, filetypes):
+        """Pick one input file from a file dialog."""
+        return filedialog.askopenfilename(title=title, filetypes=filetypes)
+
+    def _pick_multiple_input_files(self, title, filetypes, min_count=2):
+        """Pick multiple input files from a file dialog."""
+        return filedialog.askopenfilenames(title=title, filetypes=filetypes)
+
+    def _detect_system_dark_mode(self):
+        """Detect if the OS is currently using dark mode."""
+        try:
+            system_name = platform.system()
+
+            if system_name == 'Windows' and winreg is not None:
+                with winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER,
+                    r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                ) as reg_key:
+                    # 0 = dark mode, 1 = light mode
+                    apps_use_light_theme, _ = winreg.QueryValueEx(reg_key, 'AppsUseLightTheme')
+                    return apps_use_light_theme == 0
+
+            if system_name == 'Darwin':
+                result = subprocess.run(
+                    ['defaults', 'read', '-g', 'AppleInterfaceStyle'],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                return result.returncode == 0 and result.stdout.strip().lower() == 'dark'
+        except Exception:
+            pass
+
+        return False
+
+    def _map_theme_color(self, color_value, is_background=True):
+        """Map hardcoded light colors to dark-mode-friendly colors."""
+        if not color_value:
+            return None
+
+        color_key = str(color_value).strip().lower()
+
+        background_map = {
+            '#f0f0f0': '#1f2329',
+            '#ffffff': '#2a2f36',
+            '#e8e8e8': '#171b20',
+            '#29348f': '#7fa7ff',
+            '#6a1b9a': '#b388ff',
+            '#757575': '#5e6673',
+            '#999': '#6b7481',
+            '#999999': '#6b7481',
+            '#e65100': '#ff8a3d',
+            'white': '#2a2f36',
+            'systembuttonface': '#1f2329'
+        }
+
+        foreground_map = {
+            '#29348f': '#9cb8ff',
+            '#6a1b9a': '#ccb3ff',
+            '#333': '#eceff4',
+            '#333333': '#eceff4',
+            '#555': '#c4cad4',
+            '#555555': '#c4cad4',
+            '#666': '#b5bdc8',
+            '#666666': '#b5bdc8',
+            '#999': '#a6b0bf',
+            '#999999': '#a6b0bf',
+            'systembuttontext': '#eceff4'
+        }
+
+        theme_map = background_map if is_background else foreground_map
+        return theme_map.get(color_key)
+
+    def _apply_theme_to_widget_tree(self, widget):
+        """Recursively apply dark-mode mapping to existing Tk widgets."""
+        config_updates = {}
+
+        # Background-like properties
+        for prop in ('bg', 'background', 'activebackground', 'highlightbackground', 'selectbackground'):
+            if prop in widget.keys():
+                mapped = self._map_theme_color(widget.cget(prop), is_background=True)
+                if mapped:
+                    config_updates[prop] = mapped
+
+        # Foreground-like properties
+        for prop in ('fg', 'foreground', 'activeforeground', 'disabledforeground', 'insertbackground', 'selectforeground'):
+            if prop in widget.keys():
+                mapped = self._map_theme_color(widget.cget(prop), is_background=False)
+                if mapped:
+                    config_updates[prop] = mapped
+
+        if config_updates:
+            try:
+                widget.configure(**config_updates)
+            except tk.TclError:
+                pass
+
+        for child in widget.winfo_children():
+            self._apply_theme_to_widget_tree(child)
+
+    def _apply_system_theme(self):
+        """Apply theme adaptation based on OS light/dark mode setting."""
+        is_dark_mode = self._detect_system_dark_mode()
+        if not is_dark_mode:
+            return
+
+        # TTK styling for notebook/progressbar in dark mode.
+        style = ttk.Style(self.root)
+        try:
+            style.theme_use('clam')
+        except tk.TclError:
+            pass
+
+        style.configure('TFrame', background='#1f2329')
+        style.configure('TNotebook', background='#1f2329', borderwidth=0)
+        style.configure('TNotebook.Tab', background='#2a2f36', foreground='#eceff4', padding=(10, 4))
+        style.map(
+            'TNotebook.Tab',
+            background=[('selected', '#3a4250')],
+            foreground=[('selected', '#ffffff')]
+        )
+        style.configure('Horizontal.TProgressbar', troughcolor='#2a2f36', background='#7fa7ff')
+
+        self._apply_theme_to_widget_tree(self.root)
+
+    def _show_success(self, process_name, output_path=None, metrics=None, notes=None):
+        """Show clean, consistent success messages across all processing flows."""
+        lines = [f"{process_name} completed."]
+
+        if output_path:
+            lines.append("")
+            lines.append(f"File: {os.path.basename(output_path)}")
+            lines.append(f"Location: {os.path.dirname(output_path)}")
+            if os.path.exists(output_path):
+                file_size = os.path.getsize(output_path) / (1024 * 1024)
+                lines.append(f"Size: {file_size:.1f} MB")
+
+        if metrics:
+            lines.append("")
+            for label, value in metrics:
+                lines.append(f"{label}: {value}")
+
+        if notes:
+            lines.append("")
+            for note in notes:
+                lines.append(f"- {note}")
+
+        messagebox.showinfo('Success', '\n'.join(lines))
     
 
     
@@ -241,7 +399,7 @@ class CAPEXReportingApp:
     
     def browse_file(self):
         """Browse and select file"""
-        filename = filedialog.askopenfilename(
+        filename = self._pick_single_input_file(
             title="Select Excel File",
             filetypes=[("Excel Files", "*.xlsx *.xls"), ("All Files", "*.*")]
         )
@@ -339,14 +497,13 @@ class CAPEXReportingApp:
                 processor.wb.save(save_path)
                 
                 self.hide_loading()
-                
-                file_size = os.path.getsize(save_path) / (1024 * 1024)
                 self.status_var.set(f"Success! File saved: {os.path.basename(save_path)}")
-                messagebox.showinfo("Success", 
-                                  f"File processed successfully with FORMULAS!\n\n" +
-                                  f"File: {os.path.basename(save_path)}\n" +
-                                  f"Size: {file_size:.1f} MB\n" +
-                                  f"Rows: {row_count:,}\n\n")
+                self._show_success(
+                    process_name=f"{file_type.upper()} processing",
+                    output_path=save_path,
+                    metrics=[('Rows', f'{row_count:,}')],
+                    notes=['Formulas are included in the output file.']
+                )
             else:
                 self.status_var.set("Save cancelled")
                 self.hide_loading()
@@ -367,7 +524,7 @@ class CAPEXReportingApp:
     
     def process_with_pivot(self, file_type):
         """Process file with pivot table (STEP 6-7) - WITH FORMULA PRESERVATION"""
-        filename = filedialog.askopenfilename(
+        filename = self._pick_single_input_file(
             title=f"Select {file_type.upper()} File",
             filetypes=[("Excel Files", "*.xlsx *.xls"), ("All Files", "*.*")]
         )
@@ -504,15 +661,12 @@ class CAPEXReportingApp:
                 processor.wb.save(save_path)
                 self.hide_loading()
 
-                file_size = os.path.getsize(save_path) / (1024 * 1024)
                 self.status_var.set(f"Success! {file_type.upper()} with pivot saved")
-                messagebox.showinfo("Success",
-                                  f"File processed with pivot table!\n\n" +
-                                  f"File: {os.path.basename(save_path)}\n" +
-                                  f"Size: {file_size:.1f} MB\n\n" +
-                                  f"Sheets:\n" +
-                                  f"  1. Processed Data (with formulas in Amount_USD)\n" +
-                                  f"  2. Pivot Table (calculated summary)")
+                self._show_success(
+                    process_name=f"{file_type.upper()} pivot processing",
+                    output_path=save_path,
+                    notes=['Includes 2 sheets: Processed Data and Pivot Table.']
+                )
 
         except Exception as e:
             self.hide_loading()
@@ -536,7 +690,7 @@ class CAPEXReportingApp:
     
     def filter_carplan(self):
         """Filter Car Plan data (STEP 1, 9-10)"""
-        filename = filedialog.askopenfilename(
+        filename = self._pick_single_input_file(
             title="Select CJI5/CJI3 File to Filter Car Plan",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
         )
@@ -571,9 +725,11 @@ class CAPEXReportingApp:
                 self.show_loading("Saving Car Plan data...")
                 carplan_df.to_excel(save_path, index=False, engine='openpyxl')
                 self.hide_loading()
-                messagebox.showinfo("Success", 
-                                  f"Car Plan data extracted!\n\n" +
-                                  f"Rows: {len(carplan_df):,}")
+                self._show_success(
+                    process_name='Car Plan extraction',
+                    output_path=save_path,
+                    metrics=[('Rows', f'{len(carplan_df):,}')]
+                )
         
         except Exception as e:
             self.hide_loading()
@@ -581,7 +737,7 @@ class CAPEXReportingApp:
     
     def process_cji5_no_carplan(self):
         """Process CJI5 without car plan (STEP 14)"""
-        filename = filedialog.askopenfilename(
+        filename = self._pick_single_input_file(
             title="Select CJI5 File (Will exclude Car Plan GNT-OTACP-25)",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
         )
@@ -610,10 +766,14 @@ class CAPEXReportingApp:
                 self.show_loading("Saving CJI5 file without Car Plan...")
                 processor.save(save_path)
                 self.hide_loading()
-                messagebox.showinfo("Success", 
-                                  f"CJI5 processed without car plan!\n\n" +
-                                  f"Car plan entries removed: {removed_count:,}\n" +
-                                  f"Remaining rows: {len(df):,}")
+                self._show_success(
+                    process_name='CJI5 processing (without Car Plan)',
+                    output_path=save_path,
+                    metrics=[
+                        ('Car Plan entries removed', f'{removed_count:,}'),
+                        ('Remaining rows', f'{len(df):,}')
+                    ]
+                )
         
         except Exception as e:
             self.hide_loading()
@@ -621,7 +781,7 @@ class CAPEXReportingApp:
     
     def remove_cbip(self):
         """Remove CBIP entries from RFP/Reclass (STEP 12-13)"""
-        filename = filedialog.askopenfilename(
+        filename = self._pick_single_input_file(
             title="Select RFP/Reclass File to Remove M-CBIP-25",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
         )
@@ -653,10 +813,14 @@ class CAPEXReportingApp:
                 self.show_loading("Saving file without M-CBIP-25...")
                 processor.save(save_path)
                 self.hide_loading()
-                messagebox.showinfo("Success", 
-                                  f"M-CBIP-25 removed!\n\n" +
-                                  f"Removed: {removed:,} rows\n" +
-                                  f"Remaining: {len(processor.df):,} rows")
+                self._show_success(
+                    process_name=f"{file_type.upper()} cleanup",
+                    output_path=save_path,
+                    metrics=[
+                        ('Removed rows', f'{removed:,}'),
+                        ('Remaining rows', f'{len(processor.df):,}')
+                    ]
+                )
         
         except Exception as e:
             self.hide_loading()
@@ -664,7 +828,7 @@ class CAPEXReportingApp:
     
     def consolidate_zmm_files(self):
         """Consolidate multiple ZMM files (STEP 1)"""
-        filenames = filedialog.askopenfilenames(
+        filenames = self._pick_multiple_input_files(
             title="Select ZMM Files to Consolidate (select 2 or more)",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
         )
@@ -710,10 +874,14 @@ class CAPEXReportingApp:
                 self.show_loading("Saving consolidated ZMM file...")
                 consolidated_df.to_excel(save_path, index=False, engine='openpyxl')
                 self.hide_loading()
-                messagebox.showinfo("Success", 
-                                  f"ZMM files consolidated!\n\n" +
-                                  f"Files merged: {len(filenames)}\n" +
-                                  f"Total rows: {len(consolidated_df):,}")
+                self._show_success(
+                    process_name='ZMM consolidation',
+                    output_path=save_path,
+                    metrics=[
+                        ('Files merged', len(filenames)),
+                        ('Total rows', f'{len(consolidated_df):,}')
+                    ]
+                )
         
         except Exception as e:
             self.hide_loading()
@@ -731,7 +899,7 @@ class CAPEXReportingApp:
         """
         try:
             # Step 1: Select CJI5 Pivot File
-            cji5_file = filedialog.askopenfilename(
+            cji5_file = self._pick_single_input_file(
                 title="Select CJI5 Pivot File",
                 filetypes=[("Excel Files", "*.xlsx *.xls")]
             )
@@ -739,7 +907,7 @@ class CAPEXReportingApp:
                 return
             
             # Step 2: Select CJI3 Pivot File
-            cji3_file = filedialog.askopenfilename(
+            cji3_file = self._pick_single_input_file(
                 title="Select CJI3 Pivot File",
                 filetypes=[("Excel Files", "*.xlsx *.xls")]
             )
@@ -842,18 +1010,17 @@ class CAPEXReportingApp:
                 
                 self.hide_loading()
                 self.status_var.set(f"Success! Merged file saved")
-                messagebox.showinfo("Success", 
-                                  f"CJI Data Merge Completed!\n\n" +
-                                  f"Merge Summary:\n" +
-                                  f"  • CJI5 Records: {len(cji5_pivot):,}\n" +
-                                  f"  • CJI3 Records: {len(cji3_pivot):,}\n" +
-                                  f"  • Duplicates Found: {len(duplicates):,}\n" +
-                                  f"  • Final Merged Records: {len(merged_data):,}\n\n" +
-                                  f"Sheets created:\n" +
-                                  f"  1. Merged Data (CJI5 + CJI3 non-duplicates)\n" +
-                                  f"  2. Duplicates (for manual review)\n" +
-                                  f"  3. Summary (statistics)\n\n" +
-                                  f"Note: Review duplicates sheet. Remove one if needed.")
+                self._show_success(
+                    process_name='CJI data merge',
+                    output_path=save_path,
+                    metrics=[
+                        ('CJI5 records', f'{len(cji5_pivot):,}'),
+                        ('CJI3 records', f'{len(cji3_pivot):,}'),
+                        ('Duplicates found', f'{len(duplicates):,}'),
+                        ('Merged records', f'{len(merged_data):,}')
+                    ],
+                    notes=['Includes 3 sheets: Merged Data, Duplicates, and Summary.']
+                )
         
         except Exception as e:
             self.hide_loading()
@@ -892,12 +1059,23 @@ class CAPEXReportingApp:
         file_label = tk.Label(file_frame, textvariable=self.wp_loa_file_path,
                              font=("Segoe UI", 8), bg='#f0f0f0', fg='#555')
         file_label.pack(side=tk.LEFT, pady=5, padx=(0, 10))
-        
-        browse_btn = tk.Button(file_frame, text="Browse...", 
-                              command=self.browse_wp_loa_file,
-                              font=("Segoe UI", 8), bg='#29348F', fg='white',
-                              padx=15, relief=tk.FLAT, cursor="hand2")
-        browse_btn.pack(side=tk.LEFT)
+
+        # Keep WP LOA actions near Step 1 to avoid confusion with LOA Current Approver processing.
+        wp_loa_actions = tk.Frame(file_frame, bg='#f0f0f0')
+        wp_loa_actions.pack(side=tk.RIGHT)
+
+        browse_btn = tk.Button(wp_loa_actions, text="Browse...",
+                      command=self.browse_wp_loa_file,
+                      font=("Segoe UI", 8), bg='#29348F', fg='white',
+                      padx=12, relief=tk.FLAT, cursor="hand2")
+        browse_btn.pack(side=tk.LEFT, padx=(0, 6))
+
+        clear_btn = tk.Button(wp_loa_actions, text="Clear",
+                     command=self.clear_wp_loa_main_file,
+                     font=("Segoe UI", 8),
+                     bg='#999', fg='white', padx=12,
+                     relief=tk.FLAT, cursor="hand2")
+        clear_btn.pack(side=tk.LEFT)
         
         # Step 2: External files (optional)
         extern_frame = tk.LabelFrame(content, text="Step 2: Load External Reference Files", 
@@ -946,6 +1124,24 @@ class CAPEXReportingApp:
                  command=lambda: self.loa_approver_file_path.set("Not selected"),
                  font=("Segoe UI", 7), bg='#999', fg='white',
                  padx=10, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=5)
+
+        # Step 3: Process WP LOA report (placed after external references to reduce confusion)
+        process_wp_loa_frame = tk.Frame(content, bg='#f0f0f0')
+        process_wp_loa_frame.pack(fill=tk.X, pady=(0, 10))
+
+        process_btn = tk.Button(process_wp_loa_frame, text="Process WP LOA Report",
+                       command=self.process_wp_loa_threaded,
+                       font=("Segoe UI", 9, "bold"),
+                       bg='#29348F', fg='white', padx=15, pady=6,
+                       relief=tk.FLAT, cursor="hand2")
+        process_btn.pack(side=tk.LEFT, padx=(0, 6))
+
+        clear_all_btn = tk.Button(process_wp_loa_frame, text="Clear All",
+                      command=self.clear_wp_loa_form,
+                      font=("Segoe UI", 9),
+                      bg='#999', fg='white', padx=12, pady=6,
+                      relief=tk.FLAT, cursor="hand2")
+        clear_all_btn.pack(side=tk.LEFT)
         
         # Processing options
         options_frame = tk.LabelFrame(content, text="Processing Options", 
@@ -996,39 +1192,33 @@ class CAPEXReportingApp:
                                         font=("Segoe UI", 8, "bold"), 
                                         bg='#6a1b9a', fg='white', padx=15,
                                         relief=tk.FLAT, cursor="hand2")
-        process_approver_btn.pack(side=tk.LEFT)
+        process_approver_btn.pack(side=tk.LEFT, padx=(0, 6))
+
+        clear_approver_btn = tk.Button(loa_row2, text="Clear",
+                           command=self.clear_loa_current_approver_selection,
+                           font=("Segoe UI", 8),
+                           bg='#999', fg='white', padx=12,
+                           relief=tk.FLAT, cursor="hand2")
+        clear_approver_btn.pack(side=tk.LEFT)
         
-        # Process button
-        button_frame = tk.Frame(content, bg='#f0f0f0')
-        button_frame.pack(fill=tk.X, pady=15)
-        
-        process_btn = tk.Button(button_frame, text="Process WP LOA Report", 
-                               command=self.process_wp_loa_threaded,
-                               font=("Segoe UI", 10, "bold"), 
-                               bg='#29348F', fg='white', padx=20, pady=10,
-                               relief=tk.FLAT, cursor="hand2")
-        process_btn.pack(side=tk.LEFT, padx=(0, 10))
-        
-        clear_btn = tk.Button(button_frame, text="Clear All", 
-                             command=self.clear_wp_loa_form,
-                             font=("Segoe UI", 9), 
-                             bg='#999', fg='white', padx=15, pady=10,
-                             relief=tk.FLAT, cursor="hand2")
-        clear_btn.pack(side=tk.LEFT)
-    
     def browse_wp_loa_file(self):
         """Browse for WP LOA report file"""
-        file = filedialog.askopenfilename(
+        file = self._pick_single_input_file(
             title="Select WP LOA Report File",
             filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")]
         )
         if file:
             self.wp_loa_file_path.set(file)
             self.status_var.set(f"Selected: {os.path.basename(file)}")
+
+    def clear_wp_loa_main_file(self):
+        """Clear only the selected WP LOA report file."""
+        self.wp_loa_file_path.set("No file selected")
+        self.status_var.set("WP LOA file selection cleared")
     
     def browse_availment_file(self):
         """Browse for CAPEX AVAILMENT file"""
-        file = filedialog.askopenfilename(
+        file = self._pick_single_input_file(
             title="Select 2026 CAPEX AVAILMENT File",
             filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")]
         )
@@ -1037,13 +1227,18 @@ class CAPEXReportingApp:
     
     def browse_loa_approver_file_for_processing(self):
         """Browse for LOA CURRENT APPROVER file for processing"""
-        file = filedialog.askopenfilename(
+        file = self._pick_single_input_file(
             title="Select LOA CURRENT APPROVER File",
             filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")]
         )
         if file:
             self.loa_approver_file_path_input.set(file)
             self.status_var.set(f"Selected: {os.path.basename(file)}")
+
+    def clear_loa_current_approver_selection(self):
+        """Clear LOA CURRENT APPROVER processing file selection only."""
+        self.loa_approver_file_path_input.set("No file selected")
+        self.status_var.set("LOA CURRENT APPROVER file selection cleared")
     
     def clear_wp_loa_form(self):
         """Clear all WP LOA form fields"""
@@ -1080,28 +1275,16 @@ class CAPEXReportingApp:
                 self.hide_loading()
                 output_path = result
                 
-                file_size = os.path.getsize(output_path) / (1024 * 1024)
                 self.status_var.set(f"Success! LOA CURRENT APPROVER processed")
-                messagebox.showinfo("Success",
-                                  f"LOA CURRENT APPROVER Processed Successfully!\n\n" +
-                                  f"File: {os.path.basename(output_path)}\n" +
-                                  f"Location: {os.path.dirname(output_path)}\n" +
-                                  f"Size: {file_size:.1f} MB\n\n" +
-                                  f"Columns Added/Modified (L-AD):\n" +
-                                  f"  • PID (L1 WBS) - L (original data preserved)\n" +
-                                  f"  • Summary (Total Purchase Amount in USD) - M (user input)\n" +
-                                  f"  • PID (Mother and Sub) - N\n" +
-                                  f"  • PID Parts (1, YEAR, 3, L1, L2) - O-S\n" +
-                                  f"  • PROGRAM MBR, DIV, DEP, FUNDING - T-W (VLOOKUP from BUDGET)\n" +
-                                  f"  • Network Classif - X (VLOOKUP from BUDGET)\n" +
-                                  f"  • PROPONENT - Y (converted from 'Last, First' to 'First Last')\n" +
-                                  f"  • DIV IN REPORT - Z (mapped values based on DIV)\n" +
-                                  f"  • PROGRAM IN REPORT - AA (VLOOKUP from BUDGET)\n" +
-                                  f"  • PROJ, SUBPROJ - AB-AC (VLOOKUP from BUDGET)\n" +
-                                  f"  • Current Approver 1 - AD (formatted name from LOA file)\n\n" +
-                                  f"All formulas reference BUDGET sheet in the same file.\n" +
-                                  f"File saved with timestamp: LOA_CURRENT_APPROVER_Processed_YYYYMMDD_HHMMSS.xlsx\n\n" +
-                                  f"Original file not modified")
+                self._show_success(
+                    process_name='LOA CURRENT APPROVER processing',
+                    output_path=output_path,
+                    metrics=[('Columns added/updated', 'L-AD')],
+                    notes=[
+                        'Lookups reference the BUDGET sheet in the same file.',
+                        'Original file is not modified.'
+                    ]
+                )
             else:
                 self.hide_loading()
                 error_msg = result
@@ -1115,7 +1298,7 @@ class CAPEXReportingApp:
     
     def browse_loa_approver_file(self):
         """Browse for LOA Current Approver file"""
-        file = filedialog.askopenfilename(
+        file = self._pick_single_input_file(
             title="Select LOA_CURRENT_APPROVER File",
             filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")]
         )
@@ -1159,25 +1342,16 @@ class CAPEXReportingApp:
                     self.hide_loading()
                     
                     summary = processor.get_summary()
-                    
-                    summary_text = "WP LOA Report Processed Successfully!\n\n"
-                    summary_text += f"Total rows: {summary['total_rows']}\n"
-                    summary_text += f"Columns added: {summary['columns_added']}\n"
-                    summary_text += f"Output type: {summary['output_type']}\n"
-                    summary_text += f"Column range: {summary.get('column_range', 'K-AA')}\n\n"
-                    summary_text += "Formulas created in columns K-AA:\n"
-                    summary_text += "  • K: PID (copy from H)\n"
-                    summary_text += "  • L, M, N: User-entered L1 components\n"
-                    summary_text += "  • O: L1 formula (L&\"-\"&M&\"-\"&N)\n"
-                    summary_text += "  • P: L2 (copy from H)\n"
-                    summary_text += "  • Q-U: PROGRAM_MBR, DIV, DEP, FUNDING, CFU_SPONSOR\n"
-                    summary_text += "  • V-X: AVAILMENT_TRACKER, PROPONENT, PROPONENT_1\n"
-                    summary_text += "  • Y-AA: DIV_IN_REPORT, PROJ, SUBPROJ\n\n"
-                    summary_text += "All VLOOKUP formulas use IFERROR() for safe lookups\n"
-                    summary_text += "Formulas are preserved in output file\n"
-                    summary_text += "Edit columns L, M, N as needed - formulas auto-update"
-                    
-                    messagebox.showinfo("Success", summary_text)
+                    self._show_success(
+                        process_name='WP LOA report processing',
+                        output_path=temp_save_path,
+                        metrics=[
+                            ('Total rows', summary['total_rows']),
+                            ('Columns added', summary['columns_added']),
+                            ('Column range', summary.get('column_range', 'K-AA'))
+                        ],
+                        notes=['Formulas are preserved and recalculate in Excel.']
+                    )
                     self.status_var.set(f"WP LOA processing complete - {summary['total_rows']} rows with formulas")
                 else:
                     self.hide_loading()
