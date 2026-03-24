@@ -3,23 +3,31 @@ name: Build CAPEX Reporting Tool
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag (example: v1.2.3). If blank, build-<run_number> is used.
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
+
       - name: Verify files exist
         run: |
           Write-Host "Current directory: $(Get-Location)"
@@ -28,7 +36,7 @@ jobs:
           Write-Host "Checking spec file:"
           Test-Path "build-scripts/CAPEX_Reporting_Tool.spec"
         shell: powershell
-      
+
       - name: Build Windows executable
         run: |
           Write-Host "Starting PyInstaller build..."
@@ -36,7 +44,7 @@ jobs:
           python -m PyInstaller build-scripts/CAPEX_Reporting_Tool.spec
           Write-Host "Build completed"
         shell: powershell
-      
+
       - name: Check build result
         if: always()
         run: |
@@ -53,14 +61,12 @@ jobs:
             exit 1
           }
         shell: powershell
-        
+
       - name: Create Windows ZIP
         run: |
-          # Verify the full dist folder structure
           Write-Host "Full dist folder contents:"
           Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
-          
-          # Compress the entire dist folder to preserve structure
+
           if (Test-Path "dist/CAPEX_Reporting_Tool") {
             Write-Host "Creating ZIP with full folder structure..."
             Compress-Archive -Path "dist/CAPEX_Reporting_Tool" -DestinationPath "CAPEX_Reporting_Tool_Windows.zip" -Force
@@ -71,28 +77,59 @@ jobs:
             exit 1
           }
         shell: powershell
-      
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows-Build
-          path: CAPEX_Reporting_Tool_Windows.zip
-          retention-days: 30
+
+      - name: Resolve release tag
+        id: release_tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          $tag = "${{ github.event.inputs.release_tag }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            $tag = "build-${{ github.run_number }}"
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+        shell: powershell
+
+      - name: Ensure release exists
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.release_tag.outputs.tag }}"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title "CAPEX Reporting Tool $tag" --notes "Automated Windows/macOS build outputs."
+            if ($LASTEXITCODE -ne 0) {
+              gh release view $tag *> $null
+              if ($LASTEXITCODE -ne 0) {
+                throw "Unable to create or find release $tag"
+              }
+            }
+          }
+        shell: powershell
+
+      - name: Upload Windows build to release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.release_tag.outputs.tag }}"
+          gh release upload $tag CAPEX_Reporting_Tool_Windows.zip --clobber
+        shell: powershell
 
   build-macos:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: pip3 install -r requirements.txt
-      
+
       - name: Verify files exist
         run: |
           echo "Current directory: $(pwd)"
@@ -100,14 +137,14 @@ jobs:
           ls -la | head -20
           echo "Checking spec file:"
           test -f build-scripts/CAPEX_Reporting_Tool.spec && echo "Spec file exists" || echo "Spec file NOT found"
-      
+
       - name: Build macOS app
         run: |
           echo "Starting PyInstaller build..."
           echo "Working directory: $(pwd)"
           python -m PyInstaller build-scripts/CAPEX_Reporting_Tool.spec
           echo "Build completed"
-      
+
       - name: Check build result
         if: always()
         run: |
@@ -123,7 +160,7 @@ jobs:
             fi
             exit 1
           fi
-        
+
       - name: Create macOS DMG
         run: |
           if [ -d "dist/CAPEX_Reporting_Tool.app" ]; then
@@ -133,10 +170,30 @@ jobs:
             echo "ERROR: App bundle not found at dist/CAPEX_Reporting_Tool.app"
             exit 1
           fi
-      
-      - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macOS-Build
-          path: CAPEX_Reporting_Tool_macOS.dmg
-          retention-days: 30
+
+      - name: Resolve release tag
+        id: release_tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          tag="${{ github.event.inputs.release_tag }}"
+          if [ -z "$tag" ]; then
+            tag="build-${{ github.run_number }}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure release exists
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.release_tag.outputs.tag }}"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "CAPEX Reporting Tool $tag" --notes "Automated Windows/macOS build outputs." || true
+          gh release view "$tag" >/dev/null 2>&1
+
+      - name: Upload macOS build to release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.release_tag.outputs.tag }}"
+          gh release upload "$tag" CAPEX_Reporting_Tool_macOS.dmg --clobber
