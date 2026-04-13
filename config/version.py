@@ -4,7 +4,7 @@ Update VERSION with each release
 """
 
 # Current application version - UPDATE THIS WITH EACH RELEASE
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 # GitHub repository information
 GITHUB_REPO = "ludreinsalvador/capex-reporting-app"

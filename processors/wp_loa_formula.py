@@ -294,7 +294,32 @@ class WPLOAFormulaProcessor:
             
             # Load LOA CURRENT APPROVER workbook
             loa_wb = openpyxl.load_workbook(loa_current_approver_path)
-            loa_ws = loa_wb.active
+
+            # Robustly pick the LOA data sheet instead of relying on .active
+            loa_ws = None
+            # Prefer sheet names that contain LOA/APPROVER/CURRENT (case-insensitive)
+            for name in loa_wb.sheetnames:
+                upper_name = name.upper()
+                if 'LOA' in upper_name or 'APPROVER' in upper_name or 'CURRENT' in upper_name:
+                    loa_ws = loa_wb[name]
+                    break
+
+            # If not found, pick the first sheet that is not named BUDGET
+            if loa_ws is None:
+                for name in loa_wb.sheetnames:
+                    if name.strip().upper() != 'BUDGET':
+                        loa_ws = loa_wb[name]
+                        break
+
+            # Fallback to active if still None
+            if loa_ws is None:
+                loa_ws = loa_wb.active
+
+            # Log the chosen sheet for debugging
+            try:
+                print(f"Processing LOA sheet: '{loa_ws.title}'")
+            except Exception:
+                pass
             
             # All formulas will reference BUDGET sheet in the same workbook
             last_row = loa_ws.max_row
