@@ -1,8 +1,8 @@
-# CAPEX Reporting Tool
+# CAPEX Reporting Automation Tool
 
-Cross-platform Excel processing application for Windows and macOS with automatic updates.
+Cross-platform Excel Formula processing application for Windows and macOS with automatic updates.
 
-**Current Version:** 1.0.1  
+**Current Version:** 1.0.2  
 **Supported Platforms:** Windows 7+, macOS 10.13+  
 **Auto-Updates:** Built-in (check every launch)
 
